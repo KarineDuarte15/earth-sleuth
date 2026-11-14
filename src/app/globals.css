@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+:root {
+  --navy: #12284a;
+  --sky: #1a9bc7;
+  --orange: #f07c22;
+}
+
+body {
+  background: #f3f6f9;
+  color: #0f1e33;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: "Noto Serif", Georgia, serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sky);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
