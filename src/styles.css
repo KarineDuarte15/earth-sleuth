@@ -416,6 +416,13 @@ h1, h2, h3, h4 { font-family: "Fredoka", "Nunito", system-ui, sans-serif; letter
 @keyframes page-turn { from { opacity: 0; transform: rotateY(-50deg); } to { opacity: 1; transform: none; } }
 .write-on { animation: write-on 0.75s steps(30) 0.2s both; }
 @keyframes write-on { from { clip-path: inset(-0.3em 100% -0.3em 0); } to { clip-path: inset(-0.3em 0 -0.3em 0); } }
+.map-unfold { animation: map-unfold 0.7s cubic-bezier(.3,.8,.3,1) 0.25s both; }
+@keyframes map-unfold { from { clip-path: inset(0 50% 0 50% round 24px); opacity: 0.4; } to { clip-path: inset(0 0 0 0 round 24px); opacity: 1; } }
+.compass-needle { transform-origin: 40px 40px; animation: compass-spin 1.1s cubic-bezier(.2,.8,.3,1), compass-swing 3.2s ease-in-out 1.1s infinite; }
+@keyframes compass-spin { from { rotate: -540deg; } to { rotate: 0deg; } }
+@keyframes compass-swing { 0%, 100% { rotate: -9deg; } 50% { rotate: 11deg; } }
+.shine { left: -30%; animation: shine 3.2s ease-in-out infinite; }
+@keyframes shine { 0%, 55% { left: -30%; } 100% { left: 130%; } }
 .sweep { animation: sweep 0.85s cubic-bezier(.4,0,.3,1) both; }
 @keyframes sweep { 0% { left: -20%; top: 55%; rotate: -18deg; opacity: 0; } 15% { opacity: 1; } 50% { top: 18%; } 85% { opacity: 1; } 100% { left: 96%; top: 45%; rotate: 14deg; opacity: 0; } }
 

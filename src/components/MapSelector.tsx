@@ -44,6 +44,11 @@ function loadMaps(): Promise<void> {
   return mapsReady;
 }
 
+// The pointer over the map is a small compass; the click lands on its centre.
+const COMPASS_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'><circle cx='22' cy='22' r='19' fill='#fff' stroke='#1b1440' stroke-width='3.5'/><path d='M22 6 27 22H17z' fill='#ff6b98' stroke='#1b1440' stroke-width='2' stroke-linejoin='round'/><path d='M22 38 17 22h10z' fill='#1b1440'/><circle cx='22' cy='22' r='3' fill='#ffc93c' stroke='#1b1440' stroke-width='2'/></svg>`,
+)}") 22 22, crosshair`;
+
 // Comic-style map: flat sticker colours, bold country outlines, no roads or points of interest.
 const INK = "#1b1440";
 const MAP_STYLE: google.maps.MapTypeStyle[] = [
@@ -105,7 +110,7 @@ export default function MapSelector(props: Props) {
       instance = new google.maps.Map(container.current, {
         center: { lat: focus.latitude, lng: focus.longitude }, zoom: 4, minZoom: 2,
         clickableIcons: false, disableDefaultUI: true, gestureHandling: "cooperative",
-        styles: MAP_STYLE, backgroundColor: "#3fd4ff", draggableCursor: "crosshair",
+        styles: MAP_STYLE, backgroundColor: "#3fd4ff", draggableCursor: COMPASS_CURSOR,
       });
       listeners.push(instance.addListener("click", (event: google.maps.MapMouseEvent) => {
         if (!event.latLng) return;
@@ -157,7 +162,20 @@ export default function MapSelector(props: Props) {
         label: { text: label, color: "#ffffff", fontWeight: "800", fontSize: "15px" }, clickable: false,
       }));
     }
-    return () => overlays.forEach((overlay) => overlay.setMap(null));
+    // A radar ping keeps pulsing around the place being chosen.
+    const ping = new google.maps.Circle({ map, center: { lat: focus.latitude, lng: focus.longitude }, radius: 0,
+      strokeColor: INK, strokeWeight: 2.5, fillColor: activeTarget === "B" && sceneB ? secondary : primary, clickable: false });
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const began = performance.now();
+    let frame = 0;
+    const pulse = (now: number) => {
+      const k = ((now - began) % 1800) / 1800;
+      ping.setRadius(60000 + k * 420000);
+      ping.setOptions({ strokeOpacity: 0.9 * (1 - k), fillOpacity: 0.28 * (1 - k) });
+      frame = requestAnimationFrame(pulse);
+    };
+    if (still) ping.setMap(null); else frame = requestAnimationFrame(pulse);
+    return () => { cancelAnimationFrame(frame); ping.setMap(null); overlays.forEach((overlay) => overlay.setMap(null)); };
   }, [map, props.sceneA, props.sceneB, props.activeTarget, props.latStep, props.lonStep, props.lang]);
 
   const zoom = (d: number) => map?.setZoom(Math.max(2, (map.getZoom() ?? 4) + d));
@@ -175,6 +193,18 @@ export default function MapSelector(props: Props) {
           <p className="outline-ink pointer-events-none absolute bottom-3 left-3 rounded-full bg-[var(--panel)] px-3 py-1 font-mono text-[11px] font-semibold text-foreground">
             {pt ? "cada quadrado de dado tem ~55 km" : "each data square is ~55 km"}
           </p>
+          <svg key={`${props.activeTarget}${props.sceneA.latitude}${props.sceneA.longitude}${props.sceneB?.latitude}${props.sceneB?.longitude}`} aria-hidden viewBox="0 0 80 80" className="pointer-events-none absolute right-3 top-3 h-20 w-20 drop-shadow-[3px_3px_0_#1b1440]">
+            <circle cx="40" cy="40" r="36" fill="#fff" stroke={INK} strokeWidth="4" />
+            <circle cx="40" cy="40" r="27" fill="#ffe9b8" stroke={INK} strokeWidth="2" strokeDasharray="2 5" />
+            {["N", "E", "S", "W"].map((d, i) => (
+              <text key={d} x={40 + [0, 30, 0, -30][i]} y={44 + [-27, 0, 27, 0][i]} textAnchor="middle" fontSize="10" fontWeight="800" fill={INK}>{pt && d === "W" ? "O" : pt && d === "E" ? "L" : d}</text>
+            ))}
+            <g className="compass-needle">
+              <path d="M40 16 46 40H34z" fill="#ff6b98" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
+              <path d="M40 64 34 40h12z" fill={INK} />
+              <circle cx="40" cy="40" r="4" fill="#ffc93c" stroke={INK} strokeWidth="2" />
+            </g>
+          </svg>
           <div className="absolute bottom-6 right-3 flex flex-col gap-2">
             <button type="button" onClick={() => zoom(1)} aria-label={pt ? "Aproximar" : "Zoom in"} className={ctl}>+</button>
             <button type="button" onClick={() => zoom(-1)} aria-label={pt ? "Afastar" : "Zoom out"} className={ctl}>−</button>

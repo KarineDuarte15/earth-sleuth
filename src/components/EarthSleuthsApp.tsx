@@ -7,14 +7,13 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ClientOnly, useNavigate } from "@tanstack/react-router";
 import { analyzeInvestigation } from "@/lib/analyze.functions";
 import {
-  Thermometer, Moon, Sun, CloudRain, Sprout, Leaf, Search, Wand2, SplitSquareHorizontal, Share2, Check, AlertCircle,
+  Thermometer, Moon, Sun, CloudRain, Sprout, Leaf, Search, SplitSquareHorizontal, Share2, Check, AlertCircle,
   MapPin, ScanSearch, ArrowRight, ArrowDown, Sparkles, Database, Sigma, Play, Trees, Building2, Waves, Droplets, Wind,
-  BookOpen, HelpCircle, CalendarRange, Settings2, Pin, Pencil, Paperclip, type LucideIcon,
+  BookOpen, HelpCircle, CalendarRange, Pin, Pencil, Paperclip, Fingerprint, Footprints, Compass, Star, type LucideIcon,
 } from "lucide-react";
 import { FRONTEND_CLUES, PRESET_CASES, REGION_SHORTCUTS, PELOTAS, clueById, type PresetCase } from "@/lib/catalog";
-import { interpretQuestion } from "@/lib/interpreter";
 import { friendlyOf, plainComparison, plainVerdict } from "@/lib/friendly";
-import type { ClueRun, DataMode, InvestigationResponse, Lang, SceneAnalysis, ScenePoint } from "@/types/sleuth";
+import type { ClueRun, InvestigationResponse, Lang, SceneAnalysis, ScenePoint } from "@/types/sleuth";
 import EvidenceModal from "@/components/EvidenceModal";
 import SdgPanel from "@/components/SdgPanel";
 import PlaceSearch from "@/components/PlaceSearch";
@@ -164,11 +163,9 @@ export default function EarthSleuthsApp() {
   const L = (l: DemoLine) => l[lang];
 
   const [question, setQuestion] = useState("");
-  const [note, setNote] = useState("");
   const [clues, setClues] = useState<string[]>(["T2M_MIN"]);
   const [startYear, setStartYear] = useState(FIRST_YEAR);
   const [endYear, setEndYear] = useState(LAST_YEAR);
-  const [mode, setMode] = useState<DataMode>("auto");
   const [twoScenes, setTwoScenes] = useState(false);
   const [mapTarget, setMapTarget] = useState<"A" | "B">("A");
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -195,7 +192,7 @@ export default function EarthSleuthsApp() {
   // The magnifier sweeps across the case file when the evidence is examined.
   const [sweep, setSweep] = useState(false);
   const restored = useRef(false);
-  useScrollReveal([result, mural.length, lang]);
+  useScrollReveal([result, mural.length, lang, demo, picking]);
 
   // Restore a case file from a shared link (?clues=...&latA=...).
   useEffect(() => {
@@ -211,7 +208,6 @@ export default function EarthSleuthsApp() {
     if (!isNaN(from)) setStartYear(from);
     if (!isNaN(to)) setEndYear(to);
     if (p.get("lang") === "pt") setLang("pt");
-    if (ids.length) setNote("restored");
     restored.current = true;
   }, []);
 
@@ -263,14 +259,6 @@ export default function EarthSleuthsApp() {
   const latestStart = Math.max(...clues.map((id) => clueById(id)?.min_year ?? FIRST_YEAR), startYear);
   const nYears = endYear - latestStart + 1;
 
-  const interpret = () => {
-    if (!question.trim()) return;
-    const i = interpretQuestion(question);
-    setClues(i.clues);
-    if (i.twoScenes) setTwoScenes(true);
-    setNote(lang === "pt" ? i.rationale_pt : i.rationale_en);
-  };
-
   const toggleClue = (id: string) => {
     if (!clues.includes(id)) setCheer((c) => c + 1);
     setClues((prev) => (prev.includes(id) ? (prev.length > 1 ? prev.filter((x) => x !== id) : prev) : [...prev, id]));
@@ -292,7 +280,7 @@ export default function EarthSleuthsApp() {
       const body = await analyzeInvestigation({
         data: {
           question: input.question || t("Investigação livre", "Open investigation"),
-          parameter_ids: input.clues, start_year: input.startYear, end_year: input.endYear, mode, lang,
+          parameter_ids: input.clues, start_year: input.startYear, end_year: input.endYear, mode: "auto", lang,
           scene_a: input.sceneA, scene_b: input.sceneB,
         },
       });
@@ -426,7 +414,6 @@ export default function EarthSleuthsApp() {
 
   const pct = (y: number) => ((y - FIRST_YEAR) / (LAST_YEAR - FIRST_YEAR)) * 100;
   const activePeriod = PERIODS.find((p) => p.from === startYear && p.to === endYear)?.id ?? "custom";
-  const noteText = note === "restored" ? t("Caso restaurado a partir de um link. Confira e examine.", "Case restored from a link. Check it, then examine.") : note;
 
   const glossary = [
     { k: t("Tendência", "Trend"), v: t("Uma subida ou descida que se mantém por muitos anos, não só um ano estranho.", "A rise or fall that keeps going for many years, not just one odd year.") },
@@ -542,9 +529,23 @@ export default function EarthSleuthsApp() {
 
       {/* THE INVESTIGATION */}
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-16">
-        {sectionTitle(t("Sua vez", "Your turn"), <>{t("Monte a ficha e peça o ", "Fill in the case file, get a ")}<span className="text-gradient">{t("veredito", "verdict")}</span></>, "var(--sun)")}
+        <div className="relative">
+          <span aria-hidden className="pointer-events-none absolute inset-0 hidden text-[var(--on-color)] lg:block">
+            {([
+              [Fingerprint, "var(--grape)", "left-[2%] top-0 h-14 w-14 -rotate-12", "float"],
+              [Footprints, "var(--mint)", "left-[11%] top-[58%] h-12 w-12 rotate-6", "float-fast"],
+              [Compass, "var(--aqua)", "right-[3%] top-[4%] h-14 w-14 rotate-12", "float-slow"],
+              [Search, "var(--coral)", "right-[12%] top-[60%] h-12 w-12 -rotate-6", "wiggle"],
+            ] as [LucideIcon, string, string, string][]).map(([I, bg, pos, anim], i) => (
+              <span key={i} className={`outline-ink absolute grid place-items-center rounded-2xl shadow-[4px_4px_0_0_var(--pop)] ${pos} ${anim}`} style={{ background: bg }}><I className="h-7 w-7" /></span>
+            ))}
+            <Star className="blink-star absolute left-[22%] top-[10%] h-5 w-5 fill-current text-[var(--sun)]" />
+            <Star className="blink-star absolute right-[23%] top-[18%] h-4 w-4 fill-current text-[var(--coral)]" style={{ animationDelay: "-0.9s" }} />
+          </span>
+          {sectionTitle(t("Sua vez", "Your turn"), <>{t("Monte a ficha e peça o ", "Fill in the case file, get a ")}<span className="text-gradient">{t("veredito", "verdict")}</span></>, "var(--sun)")}
+        </div>
 
-        <section id="q1" data-reveal className={`casefile pop relative scroll-mt-28 overflow-hidden rounded-[32px] ${demo ? "pointer-events-none z-[45]" : ""}`}>
+        <section id="q1" className={`casefile pop relative scroll-mt-28 overflow-hidden rounded-[32px] ${demo ? "pointer-events-none z-[45]" : ""}`}>
           {cover !== "none" && (
             <div aria-hidden onClick={() => setCover("none")} className={`folder-cover dots absolute inset-0 z-20 flex cursor-pointer flex-col items-center px-6 pt-10 text-center text-[#3b2408] ${cover === "opening" ? "is-open" : ""}`}>
               <Paperclip className="absolute left-6 top-4 h-14 w-14 -rotate-12 text-[#6b6480]" />
@@ -613,22 +614,6 @@ export default function EarthSleuthsApp() {
               );
             })}
           </div>
-          <div className={`mt-6 rounded-3xl border-[2.5px] border-dashed border-[var(--stroke)] bg-[var(--panel-2)] p-4 ${demo ? "dimmed" : ""}`}>
-            <p className="mb-2 flex items-center gap-1.5 font-bold text-foreground"><Wand2 className="wiggle h-4 w-4 text-[var(--coral)]" aria-hidden />{t("Ou pergunte do seu jeito", "Or ask in your own words")}</p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <label className="relative flex-1">
-                <span className="sr-only">{t("Sua pergunta", "Your question")}</span>
-                <Search className="absolute left-4 top-3.5 h-5 w-5 text-[var(--muted)]" aria-hidden />
-                <input value={question} onChange={(e) => setQuestion(e.target.value)} onKeyDown={(e) => e.key === "Enter" && interpret()}
-                  placeholder={t("ex.: a terra está ficando mais seca?", "e.g. is the land getting drier?")}
-                  className="outline-ink h-12 w-full rounded-full bg-[var(--panel)] pl-11 pr-4 text-[15px] font-semibold text-foreground placeholder:font-medium placeholder:text-[var(--muted)]" />
-              </label>
-              <button type="button" onClick={interpret} className="btn-pop inline-flex h-12 items-center justify-center gap-1.5 rounded-full bg-[var(--coral)] px-5 font-serif font-bold text-[var(--on-color)]">
-                {t("Sugerir pistas", "Suggest clues")}
-              </button>
-            </div>
-            {noteText && <p className="reveal mt-3 rounded-2xl bg-[var(--panel)] px-3 py-2 text-sm font-semibold text-foreground" role="status">💡 {noteText}</p>}
-          </div>
           </div>
         )}
 
@@ -682,7 +667,7 @@ export default function EarthSleuthsApp() {
             <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
               onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
           )}
-          <div className="outline-ink overflow-hidden rounded-3xl" onPointerEnter={() => setPeering(true)} onPointerLeave={() => setPeering(false)}>
+          <div className="map-unfold outline-ink relative overflow-hidden rounded-3xl shadow-[6px_6px_0_0_var(--pop)]" onPointerEnter={() => setPeering(true)} onPointerLeave={() => setPeering(false)}>
             <MapSelector lang={lang} sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
               latStep={primary.lat_step} lonStep={primary.lon_step}
               onSelectPoint={(target, lat, lon) =>
@@ -744,30 +729,11 @@ export default function EarthSleuthsApp() {
           <div className="min-w-0 flex-1">
             <button type="button" disabled={loading} onClick={() => void run()} onPointerEnter={() => setPeering(true)} onPointerLeave={() => setPeering(false)}
               className={`btn-pop group relative flex h-16 w-full items-center justify-center gap-3 overflow-hidden rounded-3xl bg-[var(--sun)] px-6 font-serif text-xl font-bold text-[var(--on-color)] sm:text-2xl disabled:opacity-80 ${demo ? (demo.stage === 3 ? "spot" : "dimmed") : ""}`}>
+              {!loading && !demo && <span className="shine absolute inset-y-0 w-1/4 -skew-x-12 bg-gradient-to-r from-transparent via-white/55 to-transparent" aria-hidden />}
               {loading && <span className="scan-bar absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent" aria-hidden />}
               <ScanSearch className={`h-8 w-8 ${loading ? "wiggle" : "group-wiggle"}`} aria-hidden />
               {loading ? t("Examinando as pistas…", "Examining the clues…") : t("Examinar as evidências!", "Examine the evidence!")}
             </button>
-            <details className="mt-4 text-sm font-semibold text-[var(--muted)]">
-              <summary className="inline-flex cursor-pointer items-center gap-1.5 hover:text-foreground"><Settings2 className="h-4 w-4" aria-hidden />{t("Opções avançadas", "Advanced options")}</summary>
-              <label className="mt-2 flex flex-wrap items-center gap-2">
-                {t("Fonte dos dados", "Data source")}
-                <select value={mode} onChange={(e) => setMode(e.target.value as DataMode)} className="outline-ink rounded-xl bg-[var(--panel)] px-2 py-2 text-foreground">
-                  <option value="auto">{t("NASA ao vivo, com cópia salva de reserva", "NASA live, with saved copy as backup")}</option>
-                  <option value="cache">{t("Cópia salva (mais rápido)", "Saved copy (faster)")}</option>
-                  <option value="live">{t("Só NASA ao vivo", "NASA live only")}</option>
-                </select>
-              </label>
-              {([["A", sceneA, setSceneA], ...(twoScenes ? [["B", sceneB, setSceneB]] : [])] as [string, ScenePoint, (s: ScenePoint) => void][]).map(([k, s, set]) => (
-                <label key={k} className="mt-2 flex flex-wrap items-center gap-2">
-                  {t(`Coordenadas do lugar ${k} (latitude, longitude)`, `Place ${k} coordinates (latitude, longitude)`)}
-                  <input aria-label={`Latitude ${k}`} type="number" step="0.01" min={-90} max={90} value={s.latitude}
-                    onChange={(e) => set({ ...s, latitude: Number(e.target.value) })} className="outline-ink w-24 rounded-xl bg-[var(--panel)] px-2 py-2 font-mono text-foreground" />
-                  <input aria-label={`Longitude ${k}`} type="number" step="0.01" min={-180} max={180} value={s.longitude}
-                    onChange={(e) => set({ ...s, longitude: Number(e.target.value) })} className="outline-ink w-24 rounded-xl bg-[var(--panel)] px-2 py-2 font-mono text-foreground" />
-                </label>
-              ))}
-            </details>
           </div>
           {error && (
             <p className="outline-ink mt-4 flex items-center gap-2 rounded-2xl bg-[var(--coral)] p-3 text-sm font-bold text-[var(--on-color)]" role="alert">
