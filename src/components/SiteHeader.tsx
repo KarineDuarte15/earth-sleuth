@@ -52,10 +52,10 @@ export default function SiteHeader({ lang, setLang, boardCount }: Props) {
   const [open, setOpen] = useState(false);
 
   const links = [
-    { id: "casos", label: t("Casos", "Cases") },
-    { id: "pista", label: t("Investigar", "Investigate") },
+    { id: "casos", label: t("Demo", "Demo") },
+    { id: "q1", label: t("Investigar", "Investigate") },
     { id: "veredito", label: t("Veredito", "Verdict") },
-    { id: "ods", label: t("ODS", "SDGs") },
+    { id: "caderno", label: t("Caderno", "Notebook") },
     { id: "mural", label: t("Mural", "Board"), badge: boardCount },
   ];
 
@@ -70,7 +70,7 @@ export default function SiteHeader({ lang, setLang, boardCount }: Props) {
 
   // Highlight the section currently in the middle band of the viewport.
   useEffect(() => {
-    const ids = ["topo", "casos", "pista", "veredito", "ods", "mural"];
+    const ids = ["topo", "casos", "q1", "q2", "q3", "veredito", "ods", "caderno", "mural"];
     const els = ids.map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e);
     const io = new IntersectionObserver(
       (entries) => entries.forEach((e) => e.isIntersecting && setActive(e.target.id)),
@@ -88,7 +88,7 @@ export default function SiteHeader({ lang, setLang, boardCount }: Props) {
   };
 
   const navLink = (l: (typeof links)[number], mobile = false) => {
-    const on = active === l.id || (l.id === "pista" && active === "pista");
+    const on = active === l.id || (l.id === "q1" && (active === "q2" || active === "q3"));
     return (
       <a key={l.id} href={`#${l.id}`} onClick={() => setOpen(false)} aria-current={on ? "true" : undefined}
         className={mobile
