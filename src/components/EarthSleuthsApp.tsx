@@ -9,7 +9,7 @@ const agenciesSecondary = { url: "/brand/partners/space-agencies-secondary.png" 
 import { Button } from "@/components/ui/button";
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { ClientOnly } from "@tanstack/react-router";
+import { ClientOnly, useNavigate } from "@tanstack/react-router";
 import { analyzeInvestigation } from "@/lib/analyze.functions";
 import {
   Thermometer, Moon, Sun, CloudRain, Sprout, Leaf, Satellite, Search, Wand2, SplitSquareHorizontal,
@@ -145,10 +145,13 @@ export default function EarthSleuthsApp() {
     return `?${p.toString()}`;
   }, [clues, startYear, endYear, sceneA, sceneB, twoScenes, question]);
 
-  // A barra de endereço acompanha a ficha: qualquer estado vira um link
+  // The address bar follows the case file, so any state becomes a shareable link.
+  // Go through the router with resetScroll off: a raw history.replaceState is picked up by
+  // TanStack Router as a new navigation and jumps the page back to the top.
+  const navigate = useNavigate();
   useEffect(() => {
-    if (restored.current) window.history.replaceState(null, "", shareUrl);
-  }, [shareUrl]);
+    if (restored.current) void navigate({ href: shareUrl, replace: true, resetScroll: false });
+  }, [shareUrl, navigate]);
 
   const primary = useMemo(() => clueById(clues[0]) ?? FRONTEND_CLUES[0], [clues]);
   const focused = clueById(focusClue) ?? primary;
