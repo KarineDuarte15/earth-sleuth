@@ -1,6 +1,14 @@
 # Tasks
-- [ ] Add authenticated address suggestions, place selection, and broad place search for either investigation scene.
-- [ ] Verify supported checks; live Google Places and map selection need validation on the published address.
+- [x] Add AI Gateway synthesis of an investigator question and completed A/B evidence with patterns, caveats and next steps; 16 tests pass and real NASA/model synthesis validated.
+- [ ] Validate signed-in synthesis submission in the UI; blocked by the previously declined temporary-account creation and absent user session.
+- [x] Export completed A/B investigations to PDF with statistics, monthly data and actual NASA provenance.
+- [x] Add supplied Portuguese and English interactive proposals with view and download controls.
+- [x] Verify real investigation export, PDF layout and both original document downloads; originals retain all interactive annotations.
+- [x] Apply the full palette to navigation and add official NASA POWER, MERRA-2 and GPM IMERG references to the footer.
+- [x] Add supplied Space Apps logo to the footer and favicon; apply supplied palette while retaining a white page background.
+- [x] Add authenticated address suggestions, place selection, and broad place search for either investigation scene.
+- [x] Verify supported checks: 11 tests pass, signed-out controls and two-scene comparison checked on desktop/mobile.
+- [ ] User validation: live Google Places and map selection on the published address; signed-in check blocked because temporary test account creation was declined.
 - [x] Correct the displayed name to Earth Sleuth.
 - [x] Connect Google Maps and replace the investigation map, retaining point selection and two-region comparison.
 - [x] Verify supported checks; Google Maps rendering and clicks require user validation on the authorized published address.

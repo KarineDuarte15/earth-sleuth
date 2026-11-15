@@ -39,3 +39,7 @@ use the editor.
 - Use the plain/content Button variant for migrated controls that retain bespoke layouts, keeping shared control behavior without imposing fixed dimensions.
 
 - The investigation map uses Google Maps JavaScript with a callback-based async loader and public connector key; preserve point selection and grid overlays without browser Places calls or an unconfigured map ID.
+- Address lookup uses authenticated Places API (New) server functions with bounded results and client-debounced, session-token suggestions; never expose a public Maps proxy, and apply selected coordinates and labels only to the active scene.
+- Comparison PDFs are generated from completed investigation results in the browser, preserving actual provenance and date-aligned monthly data; prepare the Blob before offering a synchronous download for mobile compatibility.
+- Supplied interactive proposals are served unchanged through asset pointers with top-level view and same-origin download links to preserve PDF annotations.
+- AI comparison synthesis uses an authenticated AI Gateway server function with validated completed A/B evidence and structured output; it never changes statistics, fetches invented evidence, or automatically replays a failed inference.

@@ -61,6 +61,14 @@
   --color-warning: var(--warning);
   --color-comparison: var(--comparison);
   --color-scene-b: var(--orange);
+  --color-deep-blue: var(--deep-blue);
+  --color-electric-blue: var(--electric-blue);
+  --color-neon-blue: var(--neon-blue);
+  --color-blue-yonder: var(--blue-yonder);
+  --color-rocket-red: var(--rocket-red);
+  --color-martian-red: var(--martian-red);
+  --color-neon-yellow: var(--neon-yellow);
+  --color-brand-white: var(--brand-white);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -159,17 +167,30 @@
 
 :root {
   --night: oklch(1 0 0);
-  --panel: oklch(0.985 0.003 230);
-  --panel-2: oklch(0.955 0.012 230);
-  --line: oklch(0.87 0.02 230);
-  --ink: oklch(0.25 0.05 240);
-  --muted: oklch(0.49 0.035 240);
-  --sky: oklch(0.52 0.12 230);
-  --brand: oklch(0.51 0.12 230);
-  --orange: oklch(0.57 0.17 48);
+  --deep-blue: oklch(0.22058171 0.07969274 264.11619525);
+  --electric-blue: oklch(0.41348290 0.17166266 260.32005405);
+  --neon-blue: oklch(0.52706986 0.21013036 260.14887446);
+  --blue-yonder: oklch(0.66179674 0.16858486 250.65260239);
+  --rocket-red: oklch(0.60174804 0.21471538 34.30965922);
+  --martian-red: oklch(0.41363730 0.15965951 31.33506405);
+  --neon-yellow: oklch(0.94963381 0.21523051 115.43213362);
+  --brand-white: oklch(1 0 0);
+  --panel: color-mix(in oklab, var(--blue-yonder) 4%, var(--brand-white));
+  --panel-2: color-mix(in oklab, var(--blue-yonder) 12%, var(--brand-white));
+  --line: color-mix(in oklab, var(--electric-blue) 22%, var(--brand-white));
+  --ink: var(--deep-blue);
+  --muted: color-mix(in oklab, var(--deep-blue) 75%, var(--brand-white));
+  --sky: var(--blue-yonder);
+  --brand: var(--neon-blue);
+  --orange: var(--rocket-red);
   --success: oklch(0.46 0.12 160);
-  --warning: oklch(0.49 0.12 75);
-  --comparison: oklch(0.47 0.15 300);
+  --warning: var(--martian-red);
+  --comparison: var(--electric-blue);
+  --chart-1: var(--neon-blue);
+  --chart-2: var(--rocket-red);
+  --chart-3: var(--blue-yonder);
+  --chart-4: var(--electric-blue);
+  --chart-5: var(--martian-red);
   --background: var(--night);
   --foreground: var(--ink);
   --card: var(--panel);
@@ -186,7 +207,7 @@
   --border: var(--line);
   --input: var(--line);
   --ring: var(--brand);
-  --destructive: oklch(0.48 0.19 25);
+  --destructive: var(--martian-red);
   --button-shadow: 0 6px 20px color-mix(in oklab, var(--brand) 18%, transparent);
   color-scheme: light;
 }

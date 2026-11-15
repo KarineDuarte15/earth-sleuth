@@ -1,4 +1,7 @@
 import logo from "@/assets/earth-sleuth-logo.jpg.asset.json";
+import agenciesPrimary from "@/assets/space-agencies-primary.png.asset.json";
+import agenciesSecondary from "@/assets/space-agencies-secondary.png.asset.json";
+import spaceAppsLogo from "@/assets/space-apps-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -16,6 +19,10 @@ import VerdictStamp from "@/components/VerdictStamp";
 import EvidenceModal from "@/components/EvidenceModal";
 import SdgPanel from "@/components/SdgPanel";
 import ClimateStripes, { type StripePalette } from "@/components/ClimateStripes";
+import PlaceSearch from "@/components/PlaceSearch";
+import ComparisonExport from "@/components/ComparisonExport";
+import ProposalDocuments from "@/components/ProposalDocuments";
+import ComparisonSynthesis from "@/components/ComparisonSynthesis";
 
 const MapSelectorLazy = lazy(() => import("@/components/MapSelector"));
 const mapFallback = <div className="flex h-[380px] items-center justify-center rounded-2xl border border-[var(--line)] bg-[var(--panel)] text-sm text-[var(--muted)]">Carregando mapa…</div>;
@@ -196,21 +203,25 @@ export default function EarthSleuthsApp() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-background/95 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-blue-yonder bg-deep-blue text-brand-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <a href="#topo" className="flex items-center gap-2.5">
-            <img src={logo.url} alt="" className="h-12 w-12 shrink-0 object-contain" />
-            <span className="font-serif text-lg font-extrabold text-foreground">Earth Sleuth</span>
+            <img src={logo.url} alt="" className="h-12 w-12 shrink-0 rounded-md bg-brand-white object-contain" />
+            <span className="font-serif text-lg font-extrabold text-brand-white">Earth Sleuth</span>
           </a>
           <nav className="flex items-center gap-1 text-sm">
-            <a href="#pista" className="hidden rounded-md px-3 py-1.5 text-[var(--muted)] hover:text-foreground sm:inline">{t("Investigar", "Investigate")}</a>
-            <a href="#ods" className="hidden rounded-md px-3 py-1.5 text-[var(--muted)] hover:text-foreground sm:inline">ODS</a>
-            <a href="#mural" className="rounded-md px-3 py-1.5 text-[var(--muted)] hover:text-foreground">{t("Mural", "Board")} ({mural.length})</a>
+            <Button asChild variant="plain" size="content" className="hidden rounded-md bg-neon-blue px-3 py-1.5 text-brand-white hover:bg-electric-blue sm:inline-flex"><a href="#pista">{t("Investigar", "Investigate")}</a></Button>
+            <Button asChild variant="plain" size="content" className="hidden rounded-md px-3 py-1.5 text-blue-yonder hover:bg-electric-blue hover:text-brand-white sm:inline-flex"><a href="#ods">ODS</a></Button>
+            <Button asChild variant="plain" size="content" className="rounded-md bg-martian-red px-3 py-1.5 text-brand-white hover:bg-rocket-red"><a href="#mural">{t("Mural", "Board")} ({mural.length})</a></Button>
             <Button variant="plain" size="content" type="button" onClick={() => setLang((l) => (l === "pt" ? "en" : "pt"))}
-              className="ml-1 rounded-lg border border-[var(--line)] px-2.5 py-1.5 font-semibold text-foreground hover:border-primary">
+              className="ml-1 rounded-md border border-neon-yellow bg-neon-yellow px-2.5 py-1.5 font-semibold text-deep-blue hover:bg-neon-yellow/80">
               {lang === "pt" ? "EN" : "PT"}
             </Button>
           </nav>
+        </div>
+        <div aria-hidden="true" className="grid h-1 grid-cols-8">
+          <span className="bg-deep-blue" /><span className="bg-electric-blue" /><span className="bg-neon-blue" /><span className="bg-blue-yonder" />
+          <span className="bg-rocket-red" /><span className="bg-martian-red" /><span className="bg-neon-yellow" /><span className="bg-brand-white" />
         </div>
       </header>
 
@@ -318,6 +329,8 @@ export default function EarthSleuthsApp() {
               </div>
             ))}
           </div>
+          <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
+            onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
           <MapSelector sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
             latStep={primary.lat_step} lonStep={primary.lon_step}
             onSelectPoint={(target, lat, lon) =>
@@ -334,7 +347,7 @@ export default function EarthSleuthsApp() {
           </div>
           <div className="relative mt-4">
             <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-[var(--line)]" />
-            <div className="absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r from-sky-500 to-orange-400"
+            <div className="absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r from-blue-yonder to-rocket-red"
               style={{ left: `${pct(startYear)}%`, right: `${100 - pct(endYear)}%` }} />
             <div className="dual-range">
               <input type="range" min={FIRST_YEAR} max={LAST_YEAR} value={startYear} aria-label={t("Ano inicial", "Start year")}
@@ -355,7 +368,7 @@ export default function EarthSleuthsApp() {
 
           <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <Button variant="plain" size="content" type="button" disabled={loading} onClick={run}
-              className="relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-primary px-6 py-4 text-lg font-bold text-primary-foreground shadow-[var(--button-shadow)] transition hover:bg-primary/90 disabled:opacity-80">
+              className="relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-neon-yellow px-6 py-4 text-lg font-bold text-deep-blue shadow-[var(--button-shadow)] transition hover:bg-neon-yellow/80 disabled:opacity-80">
               {loading && <span className="scan-bar absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-primary-foreground/30 to-transparent" aria-hidden />}
               <ScanSearch className="h-6 w-6" aria-hidden />
               {loading ? t("Examinando as pistas…", "Examining the clues…") : t("Examinar as evidências", "Examine the evidence")}
@@ -387,6 +400,8 @@ export default function EarthSleuthsApp() {
               </div>
             ) : (
               <div className="space-y-8">
+                <ComparisonExport result={result} lang={lang} />
+                <ComparisonSynthesis result={result} lang={lang} />
                 {dossierSummary && (
                   <div className="reveal flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--line)] bg-[var(--night)] p-4">
                     <span className="font-serif text-4xl font-extrabold text-foreground">{dossierSummary.sig}<span className="text-xl text-[var(--muted)]">/{dossierSummary.total}</span></span>
@@ -451,7 +466,7 @@ export default function EarthSleuthsApp() {
 
         <section id="mural" className="scroll-mt-20 rounded-3xl border border-[var(--line)] bg-[var(--panel)]/70 p-5 sm:p-7">
           <h2 className="text-2xl font-bold text-foreground">{t("Mural de investigações", "Investigation board")}</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">{t("Cada cartão guarda um link que reabre a mesma ficha. Nenhum dado pessoal é coletado.", "Each card reopens the same case file. No personal data is collected.")}</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t("Cada cartão guarda um link que reabre a mesma ficha.", "Each card reopens the same case file.")}</p>
           {mural.length === 0 ? (
             <p className="mt-4 rounded-xl border border-dashed border-[var(--line)] p-6 text-center text-sm text-[var(--muted)]">
               {t("Examine um caso e use “Salvar no mural” para criar o primeiro cartão.", "Examine a case and use “Save to board”.")}
@@ -471,9 +486,38 @@ export default function EarthSleuthsApp() {
             </div>
           )}
         </section>
+        <ProposalDocuments lang={lang} />
       </main>
 
       <footer className="border-t border-[var(--line)] px-4 py-6 text-center text-xs text-[var(--muted)]">
+        <section aria-labelledby="nasa-resources-title" className="mx-auto mb-8 max-w-6xl text-left">
+          <h2 id="nasa-resources-title" className="mb-4 text-lg font-bold text-deep-blue">{t("Recursos NASA utilizados", "NASA resources used")}</h2>
+          <div className="grid gap-6 sm:grid-cols-3">
+            <div className="border-l-4 border-neon-blue pl-4">
+              <Button asChild variant="link" size="content" className="p-0 text-base font-semibold text-electric-blue"><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener noreferrer">NASA POWER ↗</a></Button>
+              <p className="mt-2 text-sm leading-relaxed">{t("API de séries mensais por coordenadas, do NASA Langley Research Center. Fonte de acesso aos dados das investigações.", "Monthly time-series API by coordinates from NASA Langley Research Center. Data access source for investigations.")}</p>
+              <p className="mt-2 break-words text-xs text-electric-blue">T2M · T2M_MIN · T2M_MAX · PRECTOTCORR · GWETROOT · EVPTRNS · IMERG_PRECTOT</p>
+            </div>
+            <div className="border-l-4 border-rocket-red pl-4">
+              <Button asChild variant="link" size="content" className="p-0 text-base font-semibold text-electric-blue"><a href="https://gmao.gsfc.nasa.gov/gmao-products/merra-2/" target="_blank" rel="noopener noreferrer">GMAO MERRA-2 ↗</a></Button>
+              <p className="mt-2 text-sm leading-relaxed">{t("Reanálise usada para temperatura do ar, precipitação corrigida, umidade do solo e evapotranspiração, acessada via POWER.", "Reanalysis used for air temperature, corrected precipitation, soil wetness and evapotranspiration, accessed through POWER.")}</p>
+            </div>
+            <div className="border-l-4 border-neon-yellow pl-4">
+              <Button asChild variant="link" size="content" className="p-0 text-base font-semibold text-electric-blue"><a href="https://gpm.nasa.gov/data/imerg" target="_blank" rel="noopener noreferrer">GPM IMERG ↗</a></Button>
+              <p className="mt-2 text-sm leading-relaxed">{t("Estimativas de precipitação por satélite da missão Global Precipitation Measurement, usadas na pista de chuva por satélite via POWER.", "Satellite precipitation estimates from Global Precipitation Measurement, used for the satellite rain clue through POWER.")}</p>
+            </div>
+          </div>
+        </section>
+        <div className="mx-auto mb-6 flex max-w-6xl justify-center rounded-md bg-deep-blue px-6 py-6">
+          <img src={spaceAppsLogo.url} alt="NASA Space Apps Challenge" width={440} height={171}
+            loading="lazy" className="h-auto w-full max-w-[280px] object-contain" />
+        </div>
+        <div className="mx-auto mb-6 max-w-6xl space-y-4 overflow-x-auto">
+          <img src={agenciesPrimary.url} alt="NASA, GOPEN, CONAE, Bahrain Space Agency, AEB, Canadian Space Agency e ESA"
+            width={1593} height={111} loading="lazy" className="h-auto w-full min-w-[720px] object-contain" />
+          <img src={agenciesSecondary.url} alt="KASA e outras agências espaciais internacionais, incluindo ASES, AEE, Turkish Space Agency, Mohammed Bin Rashid Space Centre e UK Space Agency"
+            width={967} height={81} loading="lazy" className="mx-auto h-auto w-full min-w-[720px] max-w-4xl object-contain" />
+        </div>
         {t("Dados: NASA Langley Research Center POWER Project (MERRA-2, GPM IMERG). Uma linha de tendência descreve o passado; não é previsão climática. Projeto independente, sem endosso da NASA.",
           "Data: NASA Langley Research Center POWER Project. A trend line describes the past; it is not a climate forecast. Independent project, not endorsed by NASA.")}
       </footer>
