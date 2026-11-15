@@ -9,11 +9,12 @@ const Star = ({ className = "", style }: { className?: string; style?: React.CSS
 /**
  * The hero scene: Sleuth stands on a little planet (the 3D bunny is drawn over the #sleuth-stage box
  * by SleuthGuide), with a satellite in orbit and clue stickers floating around.
+ * The scene is clipped at the bottom edge, where the planet is cut, so orbiting pieces disappear behind it.
  */
 export default function HeroStage() {
   const chip = "outline-ink absolute grid place-items-center rounded-2xl text-[var(--on-color)] shadow-[3px_3px_0_0_var(--pop)]";
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[360px] sm:max-w-[520px]" aria-hidden>
+    <div className="relative mx-auto aspect-square w-full max-w-[360px] sm:max-w-[520px]" style={{ clipPath: "inset(-30% -30% 0 -30%)" }} aria-hidden>
       {/* sun disc behind the detective */}
       <div className="outline-ink absolute left-[14%] top-[6%] h-[64%] w-[72%] rounded-full bg-[var(--sun)]" />
       <div className="absolute left-[14%] top-[6%] h-[64%] w-[72%] rounded-full dots opacity-60" />
