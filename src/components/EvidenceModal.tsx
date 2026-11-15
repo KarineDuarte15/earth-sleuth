@@ -44,9 +44,9 @@ export default function EvidenceModal({ run, scene, lang, onClose }: Props) {
   );
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-foreground/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby="ev-title"
-        className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-background p-6 shadow-2xl"
+        className="reveal max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-border bg-[var(--panel)] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
           <div>
@@ -78,7 +78,7 @@ export default function EvidenceModal({ run, scene, lang, onClose }: Props) {
             <Row k={t("Versão da API / app", "API / app version")} v={`${p.dataset_version ?? "n/a"} / ${p.app_version}`} />
           </div>
 
-          <div className="rounded-xl border border-primary bg-sky-50 p-3.5 text-primary">
+          <div className="rounded-xl border border-primary/40 bg-primary/10 p-3.5 text-primary">
             <p className="mb-1 font-semibold">{t("Limites desta análise", "Limits of this analysis")}</p>
             <ul className="list-disc space-y-1 pl-4">
               <li>{t("Mann-Kendall detecta tendência monotônica; não prova a causa (por exemplo, não mostra que o El Niño causou a mudança).", "Mann-Kendall detects a monotonic trend; it does not prove the cause.")}</li>

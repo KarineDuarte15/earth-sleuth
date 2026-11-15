@@ -1,12 +1,11 @@
-const LOGO_SRC = "/brand/orbiting-analytics-globe.png";
-const LOGO_SMALL_SRC = "/brand/orbiting-analytics-globe-256.png";
 // Address search and the AI comparison summary need a signed-in account (Supabase + Lovable gateway).
 // Space Apps judges must reach the whole project without a login, so both stay off for the submission.
 // Set to true to bring them back; their code is unchanged.
 const ACCOUNT_FEATURES_ENABLED = false;
-import agenciesPrimary from "@/assets/space-agencies-primary.png.asset.json";
-import agenciesSecondary from "@/assets/space-agencies-secondary.png.asset.json";
-import spaceAppsLogo from "@/assets/space-apps-logo.png.asset.json";
+// Partner images chosen by the team, copied from the Lovable asset store so they load on any host.
+const spaceAppsLogo = { url: "/brand/partners/space-apps-logo.png" };
+const agenciesPrimary = { url: "/brand/partners/space-agencies-primary.png" };
+const agenciesSecondary = { url: "/brand/partners/space-agencies-secondary.png" };
 import { Button } from "@/components/ui/button";
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -14,7 +13,7 @@ import { ClientOnly } from "@tanstack/react-router";
 import { analyzeInvestigation } from "@/lib/analyze.functions";
 import {
   Thermometer, Moon, Sun, CloudRain, Sprout, Leaf, Satellite, Search, Wand2, SplitSquareHorizontal,
-  Share2, Check, AlertCircle, FolderOpen, MapPin, ScanSearch, type LucideIcon,
+  Share2, Check, AlertCircle, MapPin, ScanSearch, ArrowRight, ArrowDown, Sparkles, Database, Sigma, type LucideIcon,
 } from "lucide-react";
 import { FRONTEND_CLUES, PRESET_CASES, REGION_SHORTCUTS, PELOTAS, clueById, type PresetCase } from "@/lib/catalog";
 import { interpretQuestion } from "@/lib/interpreter";
@@ -28,9 +27,11 @@ import PlaceSearch from "@/components/PlaceSearch";
 import ComparisonExport from "@/components/ComparisonExport";
 import ProposalDocuments from "@/components/ProposalDocuments";
 import ComparisonSynthesis from "@/components/ComparisonSynthesis";
+import SiteHeader from "@/components/SiteHeader";
+import HeroPreview from "@/components/HeroPreview";
 
 const MapSelectorLazy = lazy(() => import("@/components/MapSelector"));
-const mapFallback = <div className="flex h-[380px] items-center justify-center rounded-2xl border border-[var(--line)] bg-[var(--panel)] text-sm text-[var(--muted)]">Carregando mapa…</div>;
+const mapFallback = <div className="flex h-[380px] items-center justify-center rounded-2xl border border-[var(--line)] bg-[var(--panel-2)] text-sm text-[var(--muted)]">Loading map…</div>;
 function MapSelector(props: React.ComponentProps<typeof MapSelectorLazy>) {
   return (
     <ClientOnly fallback={mapFallback}>
@@ -59,17 +60,36 @@ interface MuralCard {
 
 function Step({ n, title, hint, children, id }: { n: string; title: string; hint?: string; children: React.ReactNode; id?: string }) {
   return (
-    <section id={id} className="scroll-mt-20 rounded-3xl border border-[var(--line)] bg-[var(--panel)]/70 p-5 sm:p-7">
-      <div className="mb-5 flex items-baseline gap-4">
-        <span className="font-serif text-4xl font-extrabold text-[var(--brand)]" aria-hidden>{n}</span>
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">{title}</h2>
-          {hint && <p className="text-sm text-[var(--muted)]">{hint}</p>}
+    <section id={id} data-reveal className="surface scroll-mt-24 rounded-3xl p-5 sm:p-8">
+      <div className="mb-6 flex items-start gap-4">
+        <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] font-mono text-sm font-bold text-white shadow-[var(--button-shadow)]">{n}</span>
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold text-foreground sm:text-[28px]">{title}</h2>
+          {hint && <p className="mt-1 text-sm text-[var(--muted)]">{hint}</p>}
         </div>
       </div>
       {children}
     </section>
   );
+}
+
+/** Fades sections in as they scroll into view; content stays visible if JS or the observer is unavailable. */
+function useScrollReveal(deps: unknown[]) {
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const root = document.documentElement;
+    const els = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]:not(.is-visible)"));
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("is-visible"); io.unobserve(e.target); } });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.05 });
+    els.forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight) el.classList.add("is-visible"); else io.observe(el);
+    });
+    root.classList.add("js-reveal");
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
 }
 
 export default function EarthSleuthsApp() {
@@ -96,6 +116,7 @@ export default function EarthSleuthsApp() {
   const [copied, setCopied] = useState<string | null>(null);
   const restored = useRef(false);
   const resultsRef = useRef<HTMLDivElement>(null);
+  useScrollReveal([result, mural.length]);
 
   // Restaura a ficha a partir do link (?clues=...&latA=...)
   useEffect(() => {
@@ -204,84 +225,106 @@ export default function EarthSleuthsApp() {
 
   const pct = (y: number) => ((y - FIRST_YEAR) / (LAST_YEAR - FIRST_YEAR)) * 100;
   const chip = (active: boolean) =>
-    `rounded-full border px-3 py-1.5 text-sm transition ${active ? "border-primary bg-primary/15 text-foreground" : "border-[var(--line)] text-[var(--muted)] hover:border-primary/60 hover:text-foreground"}`;
+    `rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${active ? "border-[var(--brand)] bg-[color-mix(in_oklab,var(--brand)_12%,var(--panel))] text-foreground" : "border-[var(--line)] bg-[var(--panel)] text-[var(--muted)] hover:border-[var(--brand)] hover:text-foreground"}`;
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 border-b border-blue-yonder bg-deep-blue text-brand-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-          <a href="#topo" className="flex items-center gap-2.5">
-            <img src={LOGO_SMALL_SRC} alt="" width={48} height={48} className="h-12 w-12 shrink-0 rounded-md bg-brand-white object-contain p-0.5" />
-            <span className="font-serif text-lg font-extrabold text-brand-white">Earth Sleuth</span>
-          </a>
-          <nav className="flex items-center gap-1 text-sm">
-            <Button asChild variant="plain" size="content" className="hidden rounded-md bg-neon-blue px-3 py-1.5 text-brand-white hover:bg-electric-blue sm:inline-flex"><a href="#pista">{t("Investigar", "Investigate")}</a></Button>
-            <Button asChild variant="plain" size="content" className="hidden rounded-md px-3 py-1.5 text-blue-yonder hover:bg-electric-blue hover:text-brand-white sm:inline-flex"><a href="#ods">{t("ODS", "SDGs")}</a></Button>
-            <Button asChild variant="plain" size="content" className="rounded-md bg-martian-red px-3 py-1.5 text-brand-white hover:bg-rocket-red"><a href="#mural">{t("Mural", "Board")} ({mural.length})</a></Button>
-            <Button variant="plain" size="content" type="button" onClick={() => setLang((l) => (l === "pt" ? "en" : "pt"))}
-              className="ml-1 rounded-md border border-neon-yellow bg-neon-yellow px-2.5 py-1.5 font-semibold text-deep-blue hover:bg-neon-yellow/80">
-              {lang === "pt" ? "EN" : "PT"}
-            </Button>
-          </nav>
-        </div>
-        <div aria-hidden="true" className="grid h-1 grid-cols-8">
-          <span className="bg-deep-blue" /><span className="bg-electric-blue" /><span className="bg-neon-blue" /><span className="bg-blue-yonder" />
-          <span className="bg-rocket-red" /><span className="bg-martian-red" /><span className="bg-neon-yellow" /><span className="bg-brand-white" />
-        </div>
-      </header>
+      <SiteHeader lang={lang} setLang={setLang} boardCount={mural.length} />
 
-      <div id="topo" className="starfield">
-        <div className="mx-auto max-w-6xl px-4 pb-12 pt-14 sm:pt-20">
-          <img src={LOGO_SRC} width={176} height={176} alt={t("Logo Earth Sleuth: planeta, lupa e satélite", "Earth Sleuth logo: globe, magnifying glass and satellite")} className="mb-5 h-36 w-36 object-contain sm:h-44 sm:w-44" />
-          <p className="text-sm font-semibold text-primary">{t("O planeta deixa pistas. A ciência revela tendências.", "Earth leaves clues. Science reveals trends.")}</p>
-          <h1 className="mt-3 max-w-3xl text-4xl font-extrabold leading-[1.1] text-foreground sm:text-6xl">
-            {t("Está mudando mesmo, ou foi só um ano estranho?", "Is it really changing, or was it just a strange year?")}
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg text-[var(--muted)]">
-            {t("Escolha uma pista, um lugar e um período. O Earth Sleuth busca décadas de dados da NASA e devolve um veredito com a estatística à vista.",
-              "Pick a clue, a place and a period. Earth Sleuth pulls decades of NASA data and returns a verdict with the statistics in plain sight.")}
-          </p>
+      <section id="topo" className="hero-bg">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-12 sm:pt-16 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:pb-24 lg:pt-20">
+          <div>
+            <p className="fade-up inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--panel)]/80 px-3 py-1.5 text-xs font-semibold text-[var(--muted)] shadow-sm backdrop-blur">
+              <span className="pulse-dot h-2 w-2 rounded-full bg-[var(--success)]" aria-hidden />
+              {t("Space Apps 2026 · Desafio Trend Detective", "Space Apps 2026 · Trend Detective challenge")}
+            </p>
+            <h1 className="fade-up delay-1 mt-5 text-[2.6rem] font-bold leading-[1.04] text-foreground sm:text-6xl lg:text-[4.1rem]">
+              {t("Está ", "Is it ")}<span className="text-gradient">{t("mudando mesmo", "really changing")}</span>
+              {t(", ou foi só um ano estranho?", ", or was it just a strange year?")}
+            </h1>
+            <p className="fade-up delay-2 mt-6 max-w-xl text-lg leading-relaxed text-[var(--muted)]">
+              {t("Escolha uma pista, um lugar e um período. O Earth Sleuth busca décadas de dados da NASA e devolve um veredito com a estatística à vista.",
+                "Pick a clue, a place and a period. Earth Sleuth pulls decades of NASA data and returns a verdict with the statistics in plain sight.")}
+            </p>
+            <div className="fade-up delay-3 mt-8 flex flex-col gap-3 sm:flex-row">
+              <a href="#pista" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-6 text-base font-semibold text-[var(--primary-foreground)] shadow-[var(--button-shadow)] transition hover:-translate-y-0.5 hover:brightness-110">
+                {t("Começar a investigar", "Start investigating")}
+                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
+              </a>
+              <a href="#casos" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-[var(--line)] bg-[var(--panel)] px-6 text-base font-semibold text-foreground transition hover:border-[var(--brand)]">
+                {t("Ver casos prontos", "See ready-made cases")}
+                <ArrowDown className="h-4 w-4" aria-hidden />
+              </a>
+            </div>
+            <dl className="fade-up delay-4 mt-10 grid max-w-lg grid-cols-3 gap-4 border-t border-[var(--line)] pt-6">
+              {[
+                { I: Database, v: "45", k: t("anos de dados mensais", "years of monthly data") },
+                { I: Sparkles, v: String(FRONTEND_CLUES.length), k: t("pistas do clima", "climate clues") },
+                { I: Sigma, v: "p < 0.05", k: t("teste de Mann-Kendall", "Mann-Kendall test") },
+              ].map(({ I, v, k }) => (
+                <div key={k}>
+                  <dt className="sr-only">{k}</dt>
+                  <dd className="flex items-center gap-1.5 font-serif text-xl font-bold tabular-nums text-foreground sm:text-2xl"><I className="h-4 w-4 text-[var(--brand)]" aria-hidden />{v}</dd>
+                  <dd className="mt-0.5 text-xs leading-snug text-[var(--muted)]">{k}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <div className="fade-up delay-2">
+            <HeroPreview lang={lang} />
+          </div>
+        </div>
+      </section>
 
-          <div className="mt-12 grid gap-x-4 gap-y-12 md:grid-cols-3">
+      <section id="casos" className="scroll-mt-24 pb-6">
+        <div className="mx-auto max-w-6xl px-4">
+          <div data-reveal className="mb-6 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">{t("Comece por aqui", "Start here")}</p>
+              <h2 className="mt-1 text-3xl font-bold text-foreground">{t("Dossiês prontos para abrir", "Case files ready to open")}</h2>
+            </div>
+            <p className="max-w-md text-sm text-[var(--muted)]">{t("Cada dossiê preenche a pista, o lugar e o período. Depois é só examinar.", "Each case fills in the clue, the place and the period. Then just examine.")}</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
             {PRESET_CASES.map((c, i) => (
-              <Button variant="plain" size="content" key={c.id} type="button" onClick={() => applyPreset(c)}
-                className="group relative block rounded-2xl rounded-tl-none border border-[var(--line)] bg-[var(--panel)] p-5 pt-6 text-left transition hover:-translate-y-1 hover:border-primary/70">
-                <span className="absolute -top-7 left-0 rounded-t-lg border border-b-0 border-[var(--line)] bg-[var(--panel)] px-3 py-1 text-xs font-semibold text-primary group-hover:border-primary/70">
-                  {t("Dossiê", "Case")} {String(i + 1).padStart(2, "0")}
+              <button key={c.id} type="button" onClick={() => applyPreset(c)} data-reveal style={{ transitionDelay: `${i * 90}ms` }}
+                className="surface ring-gradient group relative flex flex-col rounded-3xl p-6 text-left transition duration-300 hover:-translate-y-1">
+                <span className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-semibold text-[var(--muted)]">{t("Dossiê", "Case")} {String(i + 1).padStart(2, "0")}</span>
+                  <span className="flex gap-1.5">
+                    {c.clues.map((id) => { const I = CLUE_ICON[id]; return I ? <span key={id} className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--panel-2)] text-[var(--brand)]"><I className="h-4 w-4" aria-hidden /></span> : null; })}
+                  </span>
                 </span>
-                <span className="flex gap-1.5 text-primary">
-                  {c.clues.map((id) => { const I = CLUE_ICON[id]; return <I key={id} className="h-5 w-5" aria-hidden />; })}
+                <span className="mt-6 block font-serif text-xl font-bold text-foreground">{t(c.title_pt.split("·")[1]?.trim() ?? c.title_pt, c.title_en.split("·")[1]?.trim() ?? c.title_en)}</span>
+                <span className="mt-2 block flex-1 text-sm leading-relaxed text-[var(--muted)]">{t(c.question_pt, c.question_en)}</span>
+                <span className="mt-6 flex items-center justify-between border-t border-[var(--line)] pt-4 text-sm">
+                  <span className="flex items-center gap-1.5 text-[var(--muted)]"><MapPin className="h-3.5 w-3.5" aria-hidden />{c.sceneA.region_name.split("/")[0]}{c.sceneB ? ` × ${c.sceneB.region_name.split("/")[0]}` : ""}</span>
+                  <span className="flex items-center gap-1 font-semibold text-[var(--brand)]">{t("Abrir", "Open")}<ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" aria-hidden /></span>
                 </span>
-                <span className="mt-3 block font-serif text-lg font-bold text-foreground">{t(c.title_pt.split("·")[1]?.trim() ?? c.title_pt, c.title_en.split("·")[1]?.trim() ?? c.title_en)}</span>
-                <span className="mt-1 block text-sm text-[var(--muted)]">{t(c.question_pt, c.question_en)}</span>
-                <span className="mt-4 flex items-center justify-between text-xs text-[var(--muted)]">
-                  <span>{c.sceneA.region_name.split("/")[0]}{c.sceneB ? ` × ${c.sceneB.region_name.split("/")[0]}` : ""}</span>
-                  <span className="flex items-center gap-1 font-semibold text-primary"><FolderOpen className="h-3.5 w-3.5" aria-hidden />{t("Abrir", "Open")}</span>
-                </span>
-              </Button>
+              </button>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 space-y-8 px-4 py-10">
         <Step id="pista" n="01" title={t("Escolha a pista", "Choose the clue")} hint={t("Pode marcar mais de uma: cada pista é testada separadamente.", "Pick one or more; each clue is tested separately.")}>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {FRONTEND_CLUES.map((c) => {
               const on = clues.includes(c.parameter_id);
               const I = CLUE_ICON[c.parameter_id];
               return (
                 <Button variant="plain" size="content" key={c.parameter_id} type="button" aria-pressed={on} onClick={() => toggleClue(c.parameter_id)}
                   onMouseEnter={() => setFocusClue(c.parameter_id)} onFocus={() => setFocusClue(c.parameter_id)}
-                  className={`relative flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition ${on ? "border-primary bg-primary/10 text-foreground" : "border-[var(--line)] text-[var(--muted)] hover:border-primary/50 hover:text-foreground"}`}>
-                  {on && <Check className="absolute right-2 top-2 h-4 w-4 text-primary" aria-hidden />}
-                  <I className={`h-8 w-8 ${on ? "text-primary" : ""}`} aria-hidden />
+                  className={`relative flex flex-col items-center gap-2.5 rounded-2xl border p-4 text-center transition duration-200 hover:-translate-y-0.5 ${on ? "border-[var(--brand)] bg-[color-mix(in_oklab,var(--brand)_10%,var(--panel))] text-foreground shadow-[0_8px_24px_-14px_var(--brand)]" : "border-[var(--line)] bg-[var(--panel)] text-[var(--muted)] hover:border-[color-mix(in_oklab,var(--brand)_50%,var(--line))] hover:text-foreground"}`}>
+                  {on && <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-[var(--brand)] text-white"><Check className="h-3 w-3" aria-hidden /></span>}
+                  {I && <I className={`h-7 w-7 ${on ? "text-[var(--brand)]" : ""}`} aria-hidden />}
                   <span className="text-sm font-semibold leading-tight">{t(c.label_pt, c.label_en)}</span>
                 </Button>
               );
             })}
           </div>
-          <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--night)] p-4 text-sm">
+          <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--panel-2)]/60 p-4 text-sm">
             <span className="font-semibold text-foreground">{t(focused.label_pt, focused.label_en)}</span>
             <span className="text-[var(--muted)]">: {t(focused.simple_def_pt, focused.simple_def_en)} </span>
             <span className="text-xs text-[var(--muted)]">({focused.parameter_id} · {focused.source_mission} · {t(focused.data_type_pt, focused.data_type_en ?? focused.data_type_pt)} · {t("desde", "since")} {focused.min_year})</span>
@@ -375,8 +418,8 @@ export default function EarthSleuthsApp() {
 
           <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <Button variant="plain" size="content" type="button" disabled={loading} onClick={run}
-              className="relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-neon-yellow px-6 py-4 text-lg font-bold text-deep-blue shadow-[var(--button-shadow)] transition hover:bg-neon-yellow/80 disabled:opacity-80">
-              {loading && <span className="scan-bar absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-primary-foreground/30 to-transparent" aria-hidden />}
+              className="relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] px-6 py-4 text-lg font-bold text-white shadow-[var(--button-shadow)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:opacity-80">
+              {loading && <span className="scan-bar absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent" aria-hidden />}
               <ScanSearch className="h-6 w-6" aria-hidden />
               {loading ? t("Examinando as pistas…", "Examining the clues…") : t("Examinar as evidências", "Examine the evidence")}
             </Button>
@@ -396,11 +439,11 @@ export default function EarthSleuthsApp() {
           )}
         </Step>
 
-        <div ref={resultsRef} className="scroll-mt-20">
+        <div ref={resultsRef} id="veredito" className="scroll-mt-24">
           <Step n="04" title={t("Evidências e veredito", "Evidence and verdict")}
             hint={t("A estatística decide o carimbo, nunca uma IA.", "Statistics decide the stamp, never AI.")}>
             {!result ? (
-              <div className="rounded-2xl border border-dashed border-[var(--line)] p-10 text-center text-[var(--muted)]">
+              <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--panel-2)]/40 p-10 text-center text-[var(--muted)]">
                 <ScanSearch className="mx-auto mb-3 h-10 w-10 text-[var(--line)]" aria-hidden />
                 {t("Nenhum caso aberto ainda. Escolha pista, lugar e período e clique em Examinar, ou abra um dossiê lá em cima.",
                   "No case open yet. Pick a clue, place and period and press Examine, or open a case file above.")}
@@ -469,9 +512,9 @@ export default function EarthSleuthsApp() {
           </Step>
         </div>
 
-        <section id="ods" className="scroll-mt-20"><SdgPanel activeTargets={primary.sdg_targets} lang={lang} /></section>
+        <section id="ods" data-reveal className="scroll-mt-24"><SdgPanel activeTargets={primary.sdg_targets} lang={lang} /></section>
 
-        <section id="mural" className="scroll-mt-20 rounded-3xl border border-[var(--line)] bg-[var(--panel)]/70 p-5 sm:p-7">
+        <section id="mural" data-reveal className="surface scroll-mt-24 rounded-3xl p-5 sm:p-8">
           <h2 className="text-2xl font-bold text-foreground">{t("Mural de investigações", "Investigation board")}</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">{t("Cada cartão guarda um link que reabre a mesma ficha.", "Each card reopens the same case file.")}</p>
           {mural.length === 0 ? (
@@ -496,33 +539,60 @@ export default function EarthSleuthsApp() {
         <ProposalDocuments lang={lang} />
       </main>
 
-      <footer className="border-t border-[var(--line)] px-4 py-6 text-center text-xs text-[var(--muted)]">
-        <section aria-labelledby="nasa-resources-title" className="mx-auto mb-8 max-w-6xl text-left">
-          <h2 id="nasa-resources-title" className="mb-4 text-lg font-bold text-deep-blue">{t("Recursos NASA utilizados", "NASA resources used")}</h2>
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="border-l-4 border-neon-blue pl-4">
-              <Button asChild variant="link" size="content" className="p-0 text-base font-semibold text-electric-blue"><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener noreferrer">NASA POWER ↗</a></Button>
-              <p className="mt-2 text-sm leading-relaxed">{t("API de séries mensais por coordenadas, do NASA Langley Research Center. Fonte de acesso aos dados das investigações.", "Monthly time-series API by coordinates from NASA Langley Research Center. Data access source for investigations.")}</p>
-              <p className="mt-2 break-words text-xs text-electric-blue">T2M · T2M_MIN · T2M_MAX · PRECTOTCORR · GWETROOT · EVPTRNS</p>
-            </div>
-            <div className="border-l-4 border-rocket-red pl-4">
-              <Button asChild variant="link" size="content" className="p-0 text-base font-semibold text-electric-blue"><a href="https://gmao.gsfc.nasa.gov/gmao-products/merra-2/" target="_blank" rel="noopener noreferrer">GMAO MERRA-2 ↗</a></Button>
-              <p className="mt-2 text-sm leading-relaxed">{t("Reanálise usada para temperatura do ar, precipitação corrigida, umidade do solo e evapotranspiração, acessada via POWER.", "Reanalysis used for air temperature, corrected precipitation, soil wetness and evapotranspiration, accessed through POWER.")}</p>
-            </div>
+      <footer className="mt-10 border-t border-[var(--line)] bg-[var(--panel)]">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-[1.2fr_1fr_1fr]">
+          <div>
+            <a href="#topo" className="flex items-center gap-2.5">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-white shadow-sm ring-1 ring-[var(--line)]">
+                <img src="/brand/orbiting-analytics-globe-256.png" alt="" width={36} height={36} loading="lazy" className="h-9 w-9 object-contain" />
+              </span>
+              <span className="font-serif text-lg font-bold text-foreground">Earth <span className="text-gradient">Sleuth</span></span>
+            </a>
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--muted)]">
+              {t("Uma linha de tendência descreve o passado; não é previsão climática. Projeto independente, sem endosso da NASA.",
+                "A trend line describes the past; it is not a climate forecast. Independent project, not endorsed by NASA.")}
+            </p>
           </div>
-        </section>
-        <div className="mx-auto mb-6 flex max-w-6xl justify-center rounded-md bg-deep-blue px-6 py-6">
-          <img src={spaceAppsLogo.url} alt="NASA Space Apps Challenge" width={440} height={171}
-            loading="lazy" className="h-auto w-full max-w-[280px] object-contain" />
+          <section aria-labelledby="nasa-resources-title">
+            <h2 id="nasa-resources-title" className="text-sm font-semibold uppercase tracking-[0.14em] text-foreground">{t("Dados da NASA", "NASA data")}</h2>
+            <ul className="mt-4 space-y-4 text-sm">
+              <li>
+                <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--brand)] hover:underline">NASA POWER ↗</a>
+                <p className="mt-1 leading-relaxed text-[var(--muted)]">{t("API de séries mensais por coordenadas, do NASA Langley Research Center.", "Monthly time-series API by coordinates, from NASA Langley Research Center.")}</p>
+                <p className="mt-1 break-words font-mono text-[11px] text-[var(--muted)]">T2M · T2M_MIN · T2M_MAX · PRECTOTCORR · GWETROOT · EVPTRNS</p>
+              </li>
+              <li>
+                <a href="https://gmao.gsfc.nasa.gov/gmao-products/merra-2/" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--brand)] hover:underline">GMAO MERRA-2 ↗</a>
+                <p className="mt-1 leading-relaxed text-[var(--muted)]">{t("Reanálise por trás de todas as pistas, acessada via POWER.", "Reanalysis behind every clue, accessed through POWER.")}</p>
+              </li>
+            </ul>
+          </section>
+          <section aria-labelledby="method-title">
+            <h2 id="method-title" className="text-sm font-semibold uppercase tracking-[0.14em] text-foreground">{t("Método", "Method")}</h2>
+            <ul className="mt-4 space-y-2 text-sm text-[var(--muted)]">
+              <li>{t("Seasonal Mann-Kendall (Hirsch e Slack, 1984)", "Seasonal Mann-Kendall (Hirsch and Slack, 1984)")}</li>
+              <li>{t("Inclinação de Sen com IC de 95%", "Sen's slope with a 95% CI")}</li>
+              <li>{t("Correção de Benjamini-Hochberg (FDR)", "Benjamini-Hochberg correction (FDR)")}</li>
+              <li>{t("Veredito decidido pela estatística, nunca por IA", "Verdict decided by statistics, never by AI")}</li>
+            </ul>
+          </section>
         </div>
-        <div className="mx-auto mb-6 max-w-6xl space-y-4 overflow-x-auto">
-          <img src={agenciesPrimary.url} alt="NASA, GOPEN, CONAE, Bahrain Space Agency, AEB, Canadian Space Agency e ESA"
-            width={1593} height={111} loading="lazy" className="h-auto w-full min-w-[720px] object-contain" />
-          <img src={agenciesSecondary.url} alt="KASA e outras agências espaciais internacionais, incluindo ASES, AEE, Turkish Space Agency, Mohammed Bin Rashid Space Centre e UK Space Agency"
-            width={967} height={81} loading="lazy" className="mx-auto h-auto w-full min-w-[720px] max-w-4xl object-contain" />
+        <div className="border-t border-[var(--line)]">
+          <div className="mx-auto max-w-6xl space-y-5 px-4 py-8">
+            <div className="mx-auto flex max-w-xs justify-center rounded-2xl bg-deep-blue px-6 py-5">
+              <img src={spaceAppsLogo.url} alt="NASA Space Apps Challenge" width={440} height={171} loading="lazy" className="h-auto w-full max-w-[220px] object-contain" />
+            </div>
+            <div className="rounded-2xl bg-white p-4 ring-1 ring-[var(--line)]">
+              <img src={agenciesPrimary.url} alt="NASA, GOPEN, CONAE, Bahrain Space Agency, AEB, Canadian Space Agency, ESA"
+                width={1593} height={111} loading="lazy" className="h-auto w-full object-contain" />
+              <img src={agenciesSecondary.url} alt="KASA, ASES, AEE, Turkish Space Agency, Mohammed Bin Rashid Space Centre, UK Space Agency"
+                width={967} height={81} loading="lazy" className="mx-auto mt-3 h-auto w-full max-w-4xl object-contain" />
+            </div>
+            <p className="text-center text-xs text-[var(--muted)]">
+              {t("Dados: NASA Langley Research Center POWER Project (MERRA-2). Space Apps Challenge 2026.", "Data: NASA Langley Research Center POWER Project (MERRA-2). Space Apps Challenge 2026.")}
+            </p>
+          </div>
         </div>
-        {t("Dados: NASA Langley Research Center POWER Project (MERRA-2). Uma linha de tendência descreve o passado; não é previsão climática. Projeto independente, sem endosso da NASA.",
-          "Data: NASA Langley Research Center POWER Project. A trend line describes the past; it is not a climate forecast. Independent project, not endorsed by NASA.")}
       </footer>
 
       {evidence && <EvidenceModal run={evidence.run} scene={evidence.scene} lang={lang} onClose={() => setEvidence(null)} />}
