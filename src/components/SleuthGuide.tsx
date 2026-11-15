@@ -295,7 +295,16 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
     ? small ? { left: "50%", bottom: "100%", translate: "-50% 0", width: "min(78vw, 280px)" } : { left: "66%", top: "-7%", width: 215 }
     : small
       ? onRight ? { right: "calc(100% - 14px)", bottom: "34%", width: Math.min(230, vw - box.w - 8) } : { left: "calc(100% - 14px)", bottom: "34%", width: Math.min(230, vw - box.w - 8) }
-      : { [onRight ? "right" : "left"]: 0, bottom: "97%", width: Math.max(200, Math.min(260, margin - 28)) };
+      : { [onRight ? "right" : "left"]: 0, bottom: "102%", width: Math.max(200, Math.min(260, margin - 28)) };
+
+  // The little tail of the speech bubble always points at him.
+  const tailSide: "down" | "left" | "right" = inHero ? (small ? "down" : "left") : small ? (onRight ? "right" : "left") : "down";
+  const tailStyle: React.CSSProperties =
+    tailSide === "down"
+      ? { top: "calc(100% - 3px)", ...(inHero ? { left: "50%", translate: "-50% 0" } : onRight ? { right: box.w / 2 - 16 } : { left: box.w / 2 - 16 }) }
+      : tailSide === "left"
+        ? { right: "calc(100% - 9px)", top: inHero ? "58%" : "55%", rotate: "90deg" }
+        : { left: "calc(100% - 9px)", top: "55%", rotate: "-90deg" };
 
   return (
     <>
@@ -328,6 +337,10 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
             </span>
           </p>
           <p role="status" aria-live="polite">{shown}</p>
+          <svg aria-hidden viewBox="0 0 32 22" className="absolute h-[22px] w-8" style={tailStyle}>
+            <path d="M3 0 L16 19 L29 0" fill="var(--panel)" stroke="var(--stroke)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+            <path d="M4.5 0 L27.5 0" stroke="var(--panel)" strokeWidth="4" />
+          </svg>
         </div>
       )}
       <button type="button" onClick={onPoke} aria-label={t("Cutucar o Sleuth", "Poke Sleuth")} className="pointer-events-auto absolute left-0 top-0 block cursor-pointer"

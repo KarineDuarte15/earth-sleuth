@@ -434,9 +434,10 @@ export default function EarthSleuthsApp() {
               <Search className="wiggle ml-2 inline h-10 w-10 text-[var(--tang)] sm:h-14 sm:w-14" aria-hidden />
             </h1>
             <p className="fade-up delay-2 mt-6 max-w-xl text-xl leading-relaxed text-[var(--muted)]">
-              {t("O planeta deixa pistas. Escolha uma, aponte um lugar e descubra com o Sleuth, usando 45 anos de dados da NASA, se a mudança é ",
-                "The planet leaves clues. Pick one, point at a place and find out with Sleuth, using 45 years of NASA data, whether the change is ")}
-              <b className="text-foreground">{t("real", "real")}</b>{t(" ou ", " or ")}<b className="text-foreground">{t("só ruído", "just noise")}</b>.
+              {t("O planeta deixa pistas. Escolha uma, aponte um lugar e descubra com o Sleuth, usando 45 anos de dados da NASA, se existe mesmo uma ",
+                "The planet leaves clues. Pick one, point at a place and find out with Sleuth, using 45 years of NASA data, whether there is a real ")}
+              <b className="text-foreground">{t("tendência", "trend")}</b>
+              {t(" ou se foi só o sobe e desce normal do clima.", " or just the climate's normal ups and downs.")}
             </p>
             <div className="fade-up delay-3 mt-8 flex flex-col gap-4 sm:flex-row">
               <a href="#casos" className="btn-pop group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[var(--sun)] px-7 font-serif text-lg font-bold text-[var(--on-color)]">
