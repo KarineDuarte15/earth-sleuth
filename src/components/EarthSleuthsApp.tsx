@@ -185,7 +185,7 @@ export default function EarthSleuthsApp() {
   const [demo, setDemo] = useState<{ text: string; mood: GuideMood; caseId: string } | null>(null);
   const demoToken = useRef(0);
   const restored = useRef(false);
-  useScrollReveal([result, mural.length]);
+  useScrollReveal([result, mural.length, lang]);
 
   // Restore a case file from a shared link (?clues=...&latA=...).
   useEffect(() => {
@@ -486,7 +486,7 @@ export default function EarthSleuthsApp() {
               { I: CalendarRange, c: "var(--tang)", h: t("Escolha os anos", "Choose the years"), d: t("De 15 a 45 anos de dados mensais da NASA.", "15 to 45 years of monthly NASA data.") },
               { I: Stamp, c: "var(--mint)", h: t("Receba o veredito", "Get the verdict"), d: t("O quê, onde, quanto e se é significativo.", "What, where, how much and whether it's significant.") },
             ].map(({ I, c, h, d }, i) => (
-              <li key={h} data-reveal="zoom" style={{ transitionDelay: `${i * 110}ms`, rotate: `${[-1.5, 1, -1, 1.5][i]}deg` }} className="pop lift group relative rounded-3xl p-5 pt-9">
+              <li key={i} data-reveal="zoom" style={{ transitionDelay: `${i * 110}ms`, rotate: `${[-1.5, 1, -1, 1.5][i]}deg` }} className="pop lift group relative rounded-3xl p-5 pt-9">
                 <span className="outline-ink absolute -top-5 left-5 grid h-11 w-11 place-items-center rounded-full bg-[var(--panel)] font-serif text-xl font-bold text-foreground shadow-[3px_3px_0_0_var(--pop)]">{i + 1}</span>
                 <span className="outline-ink group-wiggle mb-3 grid h-14 w-14 place-items-center rounded-2xl text-[var(--on-color)]" style={{ background: c }}><I className="h-7 w-7" aria-hidden /></span>
                 <span className="block font-serif text-xl font-bold text-foreground">{h}</span>
@@ -805,7 +805,7 @@ export default function EarthSleuthsApp() {
           {sectionTitle(t("Glossário", "Glossary"), <><BookOpen className="wiggle mr-2 inline h-10 w-10 text-[var(--brand)]" aria-hidden />{t("Caderno do detetive", "Detective's notebook")}</>, "var(--grape)")}
           <dl className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {glossary.map((g, i) => (
-              <div key={g.k} data-reveal="zoom" style={{ transitionDelay: `${(i % 4) * 80}ms`, rotate: `${[-1.2, 0.8, -0.6, 1.4][i % 4]}deg` }} className="pop lift ruled relative rounded-2xl p-4 pt-7">
+              <div key={i} data-reveal="zoom" style={{ transitionDelay: `${(i % 4) * 80}ms`, rotate: `${[-1.2, 0.8, -0.6, 1.4][i % 4]}deg` }} className="pop lift ruled relative rounded-2xl p-4 pt-7">
                 <span aria-hidden className="absolute left-1/2 top-[-10px] h-5 w-16 -translate-x-1/2 rotate-[-3deg] border-2 border-[var(--stroke)] opacity-90" style={{ background: ["var(--sun)", "var(--coral)", "var(--aqua)", "var(--mint)"][i % 4] }} />
                 <dt className="font-serif text-xl font-bold text-foreground">{g.k}</dt>
                 <dd className="mt-1 text-sm leading-7 text-foreground/80">{g.v}</dd>
