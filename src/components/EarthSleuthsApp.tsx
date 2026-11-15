@@ -2,10 +2,6 @@
 // Space Apps judges must reach the whole project without a login, so both stay off for the submission.
 // Set to true to bring them back; their code is unchanged.
 const ACCOUNT_FEATURES_ENABLED = false;
-// Partner images chosen by the team, copied from the Lovable asset store so they load on any host.
-const spaceAppsLogo = { url: "/brand/partners/space-apps-logo.png" };
-const agenciesPrimary = { url: "/brand/partners/space-agencies-primary.png" };
-const agenciesSecondary = { url: "/brand/partners/space-agencies-secondary.png" };
 import { Button } from "@/components/ui/button";
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -25,7 +21,6 @@ import SdgPanel from "@/components/SdgPanel";
 import ClimateStripes, { type StripePalette } from "@/components/ClimateStripes";
 import PlaceSearch from "@/components/PlaceSearch";
 import ComparisonExport from "@/components/ComparisonExport";
-import ProposalDocuments from "@/components/ProposalDocuments";
 import ComparisonSynthesis from "@/components/ComparisonSynthesis";
 import SiteHeader from "@/components/SiteHeader";
 import HeroPreview from "@/components/HeroPreview";
@@ -539,7 +534,6 @@ export default function EarthSleuthsApp() {
             </div>
           )}
         </section>
-        <ProposalDocuments lang={lang} />
       </main>
 
       <footer className="mt-10 border-t border-[var(--line)] bg-[var(--panel)]">
@@ -579,22 +573,6 @@ export default function EarthSleuthsApp() {
               <li>{t("Veredito decidido pela estatística, nunca por IA", "Verdict decided by statistics, never by AI")}</li>
             </ul>
           </section>
-        </div>
-        <div className="border-t border-[var(--line)]">
-          <div className="mx-auto max-w-6xl space-y-5 px-4 py-8">
-            <div className="mx-auto flex max-w-xs justify-center rounded-2xl bg-deep-blue px-6 py-5">
-              <img src={spaceAppsLogo.url} alt="NASA Space Apps Challenge" width={440} height={171} loading="lazy" className="h-auto w-full max-w-[220px] object-contain" />
-            </div>
-            <div className="rounded-2xl bg-white p-4 ring-1 ring-[var(--line)]">
-              <img src={agenciesPrimary.url} alt="NASA, GOPEN, CONAE, Bahrain Space Agency, AEB, Canadian Space Agency, ESA"
-                width={1593} height={111} loading="lazy" className="h-auto w-full object-contain" />
-              <img src={agenciesSecondary.url} alt="KASA, ASES, AEE, Turkish Space Agency, Mohammed Bin Rashid Space Centre, UK Space Agency"
-                width={967} height={81} loading="lazy" className="mx-auto mt-3 h-auto w-full max-w-4xl object-contain" />
-            </div>
-            <p className="text-center text-xs text-[var(--muted)]">
-              {t("Dados: NASA Langley Research Center POWER Project (MERRA-2). Space Apps Challenge 2026.", "Data: NASA Langley Research Center POWER Project (MERRA-2). Space Apps Challenge 2026.")}
-            </p>
-          </div>
         </div>
       </footer>
 
