@@ -164,7 +164,7 @@ export default function MapSelector(props: Props) {
   const pt = props.lang === "pt";
   const ctl = "btn-pop grid h-11 w-11 place-items-center rounded-full bg-[var(--panel)] font-serif text-2xl font-bold leading-none text-foreground";
   return (
-    <div className="relative h-[420px] w-full overflow-hidden bg-[#3fd4ff]">
+    <div className="relative h-[330px] w-full overflow-hidden bg-[#3fd4ff]">
       <div ref={container} className="h-full w-full" aria-label="Google Maps: investigation locations" />
       {!map && <div className="absolute inset-0 flex items-center justify-center px-6 text-center font-bold text-[#1b1440]" role="status">{error ?? "Loading map…"}</div>}
       {map && (

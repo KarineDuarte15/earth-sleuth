@@ -200,7 +200,8 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         setVw(document.documentElement.clientWidth);
-        if (!walkingRef.current) setBox(targetBox(spot));
+        // Walking back to the planet: keep chasing it while the page scrolls, so he lands on it.
+        if (!walkingRef.current || spot === "hero") setBox(targetBox(spot));
       });
     };
     window.addEventListener("resize", update);

@@ -62,7 +62,7 @@ export default function SiteHeader({ lang, setLang, boardCount }: Props) {
 
   // Highlight the section currently in the middle band of the viewport.
   useEffect(() => {
-    const ids = ["topo", "casos", "q1", "q2", "q3", "veredito", "ods", "caderno", "mural"];
+    const ids = ["topo", "casos", "q1", "veredito", "caderno", "mural"];
     const els = ids.map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e);
     const io = new IntersectionObserver(
       (entries) => entries.forEach((e) => e.isIntersecting && setActive(e.target.id)),

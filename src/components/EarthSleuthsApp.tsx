@@ -88,24 +88,23 @@ const DEMO_SCRIPT: Record<string, { intro: DemoLine; clue: DemoLine; place: Demo
   },
 };
 
-const SECTIONS = ["topo", "casos", "q1", "q2", "q3", "veredito", "ods", "caderno", "mural"] as const;
+const SECTIONS = ["topo", "casos", "q1", "veredito", "caderno", "mural"] as const;
 type SectionId = (typeof SECTIONS)[number];
 
-const SECTION_LINE: Record<SectionId, DemoLine> = {
+const SECTION_LINE: Record<SectionId | "q2" | "q3", DemoLine> = {
   topo: { pt: "Oi! Eu sou o Sleuth, um detetive de dados. Vamos descobrir se o clima está mudando mesmo em algum lugar?", en: "Hi! I'm Sleuth, a data detective. Shall we find out if the climate is really changing somewhere?" },
   casos: { pt: "Escolha um caso e aperte Assistir. Eu preencho cada passo e explico tudo no caminho.", en: "Pick a case and press Watch. I'll fill in each step and explain it as we go." },
   q1: { pt: "Passo 1: qual é a sua pergunta? Cada cartão é uma variável climática da NASA, explicada em palavras simples.", en: "Step 1: what's your question? Each card is a NASA climate variable, in plain words." },
   q2: { pt: "Passo 2: onde investigar? Toque num lugar ou no mapa. Dica: compare dois lugares, a mesma pista pode subir num e descer no outro!", en: "Step 2: where should we look? Tap a place or the map. Tip: compare two places, the same clue can rise in one and fall in the other!" },
   q3: { pt: "Passo 3: quantos anos? Preciso de pelo menos 15 para dar um veredito. Mais anos, evidência mais forte.", en: "Step 3: how many years? I need at least 15 to give a verdict. More years, stronger evidence." },
   veredito: { pt: "O veredito aparece aqui depois que você apertar Examinar as evidências.", en: "Your verdict shows up here once you press Examine the evidence." },
-  ods: { pt: "Por que isso importa: cada pista se liga a uma meta da ONU para o desenvolvimento sustentável.", en: "Why it matters: each clue links to a UN Sustainable Development Goal." },
   caderno: { pt: "Meu caderno de detetive: cada palavra difícil explicada em uma linha.", en: "My detective notebook: every tricky word explained in one line." },
   mural: { pt: "Casos resolvidos vão para o mural. Cada cartão é um link que reabre a investigação.", en: "Solved cases go on the board. Each card is a link that reopens the case." },
 };
 
 // Sleuth walks to a different spot for each part of the page.
-const SPOT: Record<SectionId, GuideSpot> = {
-  topo: "hero", casos: "left", q1: "right", q2: "left", q3: "right", veredito: "left", ods: "right", caderno: "left", mural: "right",
+const SPOT: Record<SectionId | "q2" | "q3", GuideSpot> = {
+  topo: "hero", casos: "left", q1: "right", q2: "left", q3: "right", veredito: "left", caderno: "right", mural: "left",
 };
 
 const CONFETTI_COLORS = ["#ffc93c", "#ff6b98", "#3fd4ff", "#a78bff", "#3fe0ae", "#ff9248"];
@@ -129,19 +128,12 @@ interface MuralCard {
 
 interface RunInput { clues: string[]; sceneA: ScenePoint; sceneB: ScenePoint | null; startYear: number; endYear: number; question: string }
 
-function Question({ id, n, title, hint, color, Icon, children }: { id: string; n: number; title: string; hint?: string; color: string; Icon: LucideIcon; children: React.ReactNode }) {
+function StepHead({ title, hint }: { title: string; hint: string }) {
   return (
-    <section id={id} data-reveal className="pop relative scroll-mt-28 rounded-[32px]">
-      <div className="dots relative flex items-center gap-4 overflow-hidden rounded-t-[29px] border-b-[2.5px] border-[var(--stroke)] p-5 sm:p-6" style={{ backgroundColor: color }}>
-        <span aria-hidden className="outline-ink grid h-14 w-14 shrink-0 -rotate-6 place-items-center rounded-2xl bg-[var(--panel)] font-serif text-3xl font-bold text-foreground shadow-[3px_3px_0_0_var(--pop)]">{n}</span>
-        <div className="min-w-0 text-[var(--on-color)]">
-          <h2 className="text-2xl font-bold leading-tight sm:text-4xl">{title}</h2>
-          {hint && <p className="mt-1 text-[15px] font-semibold opacity-80">{hint}</p>}
-        </div>
-        <Icon aria-hidden className="float absolute -right-4 -top-5 h-28 w-28 rotate-12 text-[var(--on-color)] opacity-15" />
-      </div>
-      <div className="p-5 sm:p-8">{children}</div>
-    </section>
+    <div className="mb-5">
+      <h3 className="text-2xl font-bold text-foreground sm:text-3xl">{title}</h3>
+      <p className="mt-1 text-[15px] font-semibold text-[var(--muted)]">{hint}</p>
+    </div>
   );
 }
 
@@ -177,6 +169,7 @@ export default function EarthSleuthsApp() {
   const [mode, setMode] = useState<DataMode>("auto");
   const [twoScenes, setTwoScenes] = useState(false);
   const [mapTarget, setMapTarget] = useState<"A" | "B">("A");
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [sceneA, setSceneA] = useState<ScenePoint>(PRESET_CASES[0].sceneA);
   const [sceneB, setSceneB] = useState<ScenePoint>(PELOTAS);
 
@@ -281,6 +274,7 @@ export default function EarthSleuthsApp() {
   };
 
   const applyCase = (c: PresetCase) => {
+    setStep(1);
     setQuestion(lang === "pt" ? c.question_pt : c.question_en);
     setClues(c.clues);
     setTwoScenes(c.twoScenes);
@@ -306,19 +300,20 @@ export default function EarthSleuthsApp() {
       setResult(null);
       say(script.intro, "walk");
       scrollToId("q1");
+      setStep(1);
       await pause(2600);
       setQuestion(lang === "pt" ? c.question_pt : c.question_en);
       setClues(c.clues);
       say(script.clue);
       await pause(4200);
-      scrollToId("q2");
+      setStep(2);
       setTwoScenes(c.twoScenes);
       setMapTarget("A");
       setSceneA(c.sceneA);
       if (c.sceneB) setSceneB(c.sceneB);
       say(script.place, "walk");
       await pause(4200);
-      scrollToId("q3");
+      setStep(3);
       setStartYear(FIRST_YEAR);
       setEndYear(LAST_YEAR);
       say(script.years);
@@ -377,11 +372,12 @@ export default function EarthSleuthsApp() {
     return () => clearTimeout(id);
   }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const guideKey = section === "q1" ? (step === 1 ? "q1" : step === 2 ? "q2" : "q3") : section;
   const [talking, setTalking] = useState(false);
   const guideText = demo ? demo.text
     : loading ? t("Investigando... estou buscando décadas de dados mensais da NASA e testando cada pista.", "Investigating... I'm pulling decades of monthly NASA data and testing each clue.")
     : resultLine && section === "veredito" ? resultLine.text
-    : L(SECTION_LINE[section]);
+    : L(SECTION_LINE[guideKey]);
   useEffect(() => {
     setTalking(true);
     const ms = Math.min(6000, Math.max(2200, guideText.length * 45));
@@ -530,12 +526,35 @@ export default function EarthSleuthsApp() {
       </section>
 
       {/* THE INVESTIGATION */}
-      <main className="mx-auto w-full max-w-6xl flex-1 space-y-12 px-4 py-16">
-        {sectionTitle(t("Sua vez", "Your turn"), <>{t("Três perguntas e um ", "Three questions and a ")}<span className="text-gradient">{t("veredito", "verdict")}</span></>, "var(--sun)")}
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-16">
+        {sectionTitle(t("Sua vez", "Your turn"), <>{t("Monte a ficha e peça o ", "Fill in the case file, get a ")}<span className="text-gradient">{t("veredito", "verdict")}</span></>, "var(--sun)")}
 
-        <Question id="q1" n={1} color="var(--grape)" Icon={HelpCircle} title={t("O que você quer descobrir?", "What do you want to find out?")}
-          hint={t("Toque em uma ou mais pistas. Cada uma é uma variável da NASA, testada separadamente.", "Tap one or more clues. Each is a NASA variable, tested on its own.")}>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section id="q1" data-reveal className="pop scroll-mt-28 overflow-hidden rounded-[32px]">
+          <div role="tablist" aria-label={t("Passos da investigação", "Investigation steps")} className="grid grid-cols-3 border-b-[2.5px] border-[var(--stroke)]">
+            {([
+              { n: 1, I: HelpCircle, c: "var(--grape)", h: t("O quê?", "What?"), v: clues.map((id) => friendlyOf(id)?.short[lang] ?? id).join(", ") },
+              { n: 2, I: MapPin, c: "var(--mint)", h: t("Onde?", "Where?"), v: shortName(sceneA.region_name) + (twoScenes ? ` × ${shortName(sceneB.region_name)}` : "") },
+              { n: 3, I: CalendarRange, c: "var(--tang)", h: t("Quando?", "When?"), v: `${startYear} ${t("a", "to")} ${endYear}` },
+            ] as const).map(({ n, I, c, h, v }) => {
+              const on = step === n;
+              return (
+                <button key={n} type="button" role="tab" aria-selected={on} onClick={() => setStep(n)}
+                  style={{ backgroundColor: on ? c : undefined }}
+                  className={`group relative flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center transition sm:flex-row sm:gap-3 sm:px-5 sm:py-4 sm:text-left ${n > 1 ? "border-l-[2.5px] border-[var(--stroke)]" : ""} ${on ? "dots text-[var(--on-color)]" : "bg-[var(--panel-2)] text-foreground hover:bg-[var(--panel)]"}`}>
+                  <span className={`outline-ink grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[var(--panel)] font-serif text-xl font-bold text-foreground sm:h-12 sm:w-12 ${on ? "-rotate-6 shadow-[3px_3px_0_0_var(--pop)]" : ""}`}>{n}</span>
+                  <span className="min-w-0 max-w-full">
+                    <span className="flex items-center justify-center gap-1.5 font-serif text-lg font-bold leading-tight sm:justify-start sm:text-xl"><I className="group-wiggle hidden h-5 w-5 sm:block" aria-hidden />{h}</span>
+                    <span className="block truncate text-xs font-bold opacity-75 sm:text-sm">{v}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="p-5 sm:p-7">
+        {step === 1 && (
+          <div key="s1" className="reveal">
+          <StepHead title={t("O que você quer descobrir?", "What do you want to find out?")} hint={t("Toque em uma ou mais pistas. Cada uma é uma variável da NASA, testada separadamente.", "Tap one or more clues. Each is a NASA variable, tested on its own.")} />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {FRONTEND_CLUES.map((c) => {
               const on = clues.includes(c.parameter_id);
               const I = CLUE_ICON[c.parameter_id];
@@ -574,11 +593,14 @@ export default function EarthSleuthsApp() {
             </div>
             {noteText && <p className="reveal mt-3 rounded-2xl bg-[var(--panel)] px-3 py-2 text-sm font-semibold text-foreground" role="status">💡 {noteText}</p>}
           </div>
-        </Question>
+          </div>
+        )}
 
-        <Question id="q2" n={2} color="var(--mint)" Icon={MapPin} title={t("Onde vamos investigar?", "Where should we look?")}
-          hint={t("Escolha um tipo de lugar, toque no mapa ou digite as coordenadas.", "Pick a kind of place, tap the map or type coordinates.")}>
-          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {step === 2 && (
+          <div key="s2" className="reveal">
+          <StepHead title={t("Onde vamos investigar?", "Where should we look?")} hint={t("Escolha um tipo de lugar, toque no mapa ou digite as coordenadas.", "Pick a kind of place, tap the map or type coordinates.")} />
+          <div className="grid gap-5 lg:grid-cols-[1fr_1.15fr]"><div>
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {REGION_SHORTCUTS.map((r, i) => {
               const cur = mapTarget === "B" && twoScenes ? sceneB : sceneA;
               const on = cur.region_name === r.region_name;
@@ -623,6 +645,7 @@ export default function EarthSleuthsApp() {
               </div>
             ))}
           </div>
+          </div><div>
           {ACCOUNT_FEATURES_ENABLED && (
             <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
               onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
@@ -633,10 +656,13 @@ export default function EarthSleuthsApp() {
               onSelectPoint={(target, lat, lon) =>
                 (target === "A" ? setSceneA : setSceneB)({ region_name: `${t("Ponto", "Point")} ${lat}, ${lon}`, latitude: lat, longitude: lon })} />
           </div>
-        </Question>
+          </div></div>
+          </div>
+        )}
 
-        <Question id="q3" n={3} color="var(--tang)" Icon={CalendarRange} title={t("Quantos anos vamos olhar?", "How many years should we look at?")}
-          hint={t("Uma tendência precisa de tempo. Com menos de 15 anos não dá para separar a mudança do ruído.", "A trend needs time. Under 15 years, change can't be told apart from noise.")}>
+        {step === 3 && (
+          <div key="s3" className="reveal">
+          <StepHead title={t("Quantos anos vamos olhar?", "How many years should we look at?")} hint={t("Uma tendência precisa de tempo. Com menos de 15 anos não dá para separar a mudança do ruído.", "A trend needs time. Under 15 years, change can't be told apart from noise.")} />
           <div className="mb-7 flex flex-wrap items-center gap-3">
             {PERIODS.map((p) => (
               <button key={p.id} type="button" aria-pressed={activePeriod === p.id} onClick={() => { setStartYear(p.from); setEndYear(p.to); }}
@@ -671,9 +697,21 @@ export default function EarthSleuthsApp() {
             <p className="mt-3 font-bold text-[var(--warning)]">⚠️ {t(`Com menos de ${MIN_YEARS} anos o resultado sai como "poucos dados".`, `Under ${MIN_YEARS} years the result will say "not enough data".`)}</p>
           )}
 
-          <div className="mt-9">
+          </div>
+        )}
+          </div>
+          <div className="flex flex-col gap-3 border-t-[2.5px] border-[var(--stroke)] bg-[var(--panel-2)] p-4 sm:flex-row sm:items-start sm:p-5">
+            <div className="flex gap-3">
+              <button type="button" disabled={step === 1} onClick={() => setStep((step - 1) as 1 | 2)} className="btn-pop inline-flex h-16 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-[var(--panel)] px-5 font-serif text-lg font-bold text-foreground disabled:opacity-40 sm:flex-none">
+                <ArrowRight className="h-5 w-5 rotate-180" aria-hidden /> {t("Voltar", "Back")}
+              </button>
+              <button type="button" disabled={step === 3} onClick={() => setStep((step + 1) as 2 | 3)} className="btn-pop inline-flex h-16 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-[var(--aqua)] px-5 font-serif text-lg font-bold text-[var(--on-color)] disabled:opacity-40 sm:flex-none">
+                {t("Próximo", "Next")} <ArrowRight className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+          <div className="min-w-0 flex-1">
             <button type="button" disabled={loading} onClick={() => void run()}
-              className="btn-pop group relative flex h-20 w-full items-center justify-center gap-3 overflow-hidden rounded-3xl bg-[var(--sun)] px-6 font-serif text-2xl font-bold text-[var(--on-color)] disabled:opacity-80">
+              className="btn-pop group relative flex h-16 w-full items-center justify-center gap-3 overflow-hidden rounded-3xl bg-[var(--sun)] px-6 font-serif text-xl font-bold text-[var(--on-color)] sm:text-2xl disabled:opacity-80">
               {loading && <span className="scan-bar absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent" aria-hidden />}
               <ScanSearch className={`h-8 w-8 ${loading ? "wiggle" : "group-wiggle"}`} aria-hidden />
               {loading ? t("Examinando as pistas…", "Examining the clues…") : t("Examinar as evidências!", "Examine the evidence!")}
@@ -695,7 +733,8 @@ export default function EarthSleuthsApp() {
               <AlertCircle className="h-5 w-5 shrink-0" aria-hidden /> {error}
             </p>
           )}
-        </Question>
+          </div>
+        </section>
       </main>
 
       {/* VERDICT */}
@@ -754,9 +793,6 @@ export default function EarthSleuthsApp() {
         </div>
       </section>
 
-      <section id="ods" className="scroll-mt-24 py-16">
-        <div data-reveal className="mx-auto max-w-6xl px-4"><SdgPanel activeTargets={primary.sdg_targets} lang={lang} /></div>
-      </section>
 
       {/* DETECTIVE NOTEBOOK */}
       <section id="caderno" className="scroll-mt-24 border-y-[2.5px] border-[var(--stroke)] bg-[var(--band)] py-16">
@@ -771,6 +807,13 @@ export default function EarthSleuthsApp() {
               </div>
             ))}
           </dl>
+          <details className="pop group mt-10 rounded-3xl">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 font-serif text-lg font-bold text-foreground">
+              <span>🌍 {t("Por que isso importa: metas da ONU ligadas às pistas", "Why it matters: UN goals linked to the clues")}</span>
+              <ArrowDown className="h-5 w-5 transition group-open:rotate-180" aria-hidden />
+            </summary>
+            <div className="p-4 pt-0 sm:p-6 sm:pt-0"><SdgPanel activeTargets={primary.sdg_targets} lang={lang} /></div>
+          </details>
         </div>
       </section>
 
@@ -845,7 +888,7 @@ export default function EarthSleuthsApp() {
         </div>
       </footer>
 
-      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={SPOT[section]} active={talking || loading || !!demo} onSkip={demo ? skipDemo : undefined} />
+      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={SPOT[guideKey]} active={talking || loading || !!demo} onSkip={demo ? skipDemo : undefined} />
       {evidence && <EvidenceModal run={evidence.run} scene={evidence.scene} lang={lang} onClose={() => setEvidence(null)} />}
     </div>
   );
