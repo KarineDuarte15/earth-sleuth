@@ -9,7 +9,7 @@ import { analyzeInvestigation } from "@/lib/analyze.functions";
 import {
   Thermometer, Moon, Sun, CloudRain, Sprout, Leaf, Search, SplitSquareHorizontal, Share2, Check, AlertCircle,
   MapPin, ScanSearch, ArrowRight, ArrowDown, Sparkles, Database, Sigma, Play, Trees, Building2, Waves, Droplets, Wind,
-  BookOpen, HelpCircle, CalendarRange, Pin, Pencil, Paperclip, Fingerprint, Footprints, Compass, Star, type LucideIcon,
+  BookOpen, HelpCircle, CalendarRange, Pin, Pencil, Paperclip, Fingerprint, Footprints, Compass, Star, Radio, Tv, Monitor, Smartphone, Rocket, type LucideIcon,
 } from "lucide-react";
 import { FRONTEND_CLUES, PRESET_CASES, REGION_SHORTCUTS, PELOTAS, clueById, type PresetCase } from "@/lib/catalog";
 import { friendlyOf, plainComparison, plainVerdict } from "@/lib/friendly";
@@ -22,6 +22,7 @@ import ComparisonSynthesis from "@/components/ComparisonSynthesis";
 import SiteHeader from "@/components/SiteHeader";
 import HeroStage from "@/components/HeroStage";
 import CaseVerdict from "@/components/CaseVerdict";
+import ClueScene from "@/components/ClueScene";
 import SleuthGuide, { type GuideMood, type GuideSpot } from "@/components/SleuthGuide";
 
 const MapSelectorLazy = lazy(() => import("@/components/MapSelector"));
@@ -71,11 +72,14 @@ const PLACE_KIND: { match: string; Icon: LucideIcon; pt: string; en: string }[] 
 const kindOf = (name: string) => PLACE_KIND.find((k) => name.includes(k.match));
 const shortName = (name: string) => name.split("/")[0].trim();
 
-const PERIODS = [
-  { id: "all", from: 1981, to: 2025, pt: "Tudo: 45 anos", en: "Everything: 45 years" },
-  { id: "30", from: 1996, to: 2025, pt: "Últimos 30 anos", en: "Last 30 years" },
-  { id: "20", from: 2006, to: 2025, pt: "Últimos 20 anos", en: "Last 20 years" },
-] as const;
+// What everyday technology looked like in each stretch of the timeline: the old-to-new feel of the period step.
+const ERAS: { before: number; Icon: LucideIcon; pt: string; en: string }[] = [
+  { before: 1990, Icon: Radio, pt: "tempo do rádio de pilha", en: "transistor-radio days" },
+  { before: 2000, Icon: Tv, pt: "tempo da TV de tubo", en: "tube-TV days" },
+  { before: 2010, Icon: Monitor, pt: "tempo do PC de mesa", en: "desktop-PC days" },
+  { before: 2020, Icon: Smartphone, pt: "tempo do smartphone", en: "smartphone days" },
+  { before: 9999, Icon: Rocket, pt: "hoje", en: "today" },
+];
 
 interface DemoLine { pt: string; en: string }
 // What Sleuth says while playing each ready-made case.
@@ -108,7 +112,7 @@ const SECTION_LINE: Record<SectionId | "q2" | "q3", DemoLine> = {
   casos: { pt: "Comece aqui! Escolha um caso e aperte Assistir. Eu resolvo na sua frente e explico cada passo.", en: "Start here! Pick a case and press Watch. I'll solve it in front of you and explain every step." },
   q1: { pt: "Passo 1: qual é a sua pergunta? Cada cartão é uma variável climática da NASA, explicada em palavras simples.", en: "Step 1: what's your question? Each card is a NASA climate variable, in plain words." },
   q2: { pt: "Passo 2: onde investigar? Gire o planeta e crave o alfinete. Dica: compare dois lugares, a mesma pista pode subir num e descer no outro!", en: "Step 2: where should we look? Spin the planet and drop the pin. Tip: compare two places, the same clue can rise in one and fall in the other!" },
-  q3: { pt: "Passo 3: quantos anos? Preciso de pelo menos 15 para dar um veredito. Mais anos, evidência mais forte.", en: "Step 3: how many years? I need at least 15 to give a verdict. More years, stronger evidence." },
+  q3: { pt: "Passo 3: de quando até quando? Preciso de pelo menos 15 para dar um veredito. Mais anos, evidência mais forte.", en: "Step 3: from when to when? I need at least 15 to give a verdict. More years, stronger evidence." },
   veredito: { pt: "O veredito aparece aqui depois que você apertar Examinar as evidências.", en: "Your verdict shows up here once you press Examine the evidence." },
   caderno: { pt: "Meu caderno de detetive: cada palavra difícil explicada em uma linha.", en: "My detective notebook: every tricky word explained in one line." },
   mural: { pt: "Casos resolvidos vão para o mural. Cada cartão é um link que reabre a investigação.", en: "Solved cases go on the board. Each card is a link that reopens the case." },
@@ -271,7 +275,9 @@ export default function EarthSleuthsApp() {
   }, []);
 
   const primary = useMemo(() => clueById(clues[0]) ?? FRONTEND_CLUES[0], [clues]);
-  const latestStart = Math.max(...clues.map((id) => clueById(id)?.min_year ?? FIRST_YEAR), startYear);
+  // The earliest year every chosen clue has data for; the timeline cannot start before it.
+  const dataStart = Math.max(FIRST_YEAR, ...clues.map((id) => clueById(id)?.min_year ?? FIRST_YEAR));
+  const latestStart = Math.max(dataStart, startYear);
   const nYears = endYear - latestStart + 1;
 
   const toggleClue = (id: string) => {
@@ -428,7 +434,6 @@ export default function EarthSleuthsApp() {
     : talking ? "talk" : "idle";
 
   const pct = (y: number) => ((y - FIRST_YEAR) / (LAST_YEAR - FIRST_YEAR)) * 100;
-  const activePeriod = PERIODS.find((p) => p.from === startYear && p.to === endYear)?.id ?? "custom";
 
   const glossary = [
     { k: t("Tendência", "Trend"), v: t("Uma subida ou descida que se mantém por muitos anos, não só um ano estranho.", "A rise or fall that keeps going for many years, not just one odd year.") },
@@ -600,14 +605,17 @@ export default function EarthSleuthsApp() {
               return (
                 <button key={c.parameter_id} type="button" aria-pressed={on} onClick={() => toggleClue(c.parameter_id)}
                   style={on ? { background: `color-mix(in oklab, ${col} 30%, var(--panel))` } : undefined}
-                  className={`group relative flex gap-4 rounded-3xl p-4 text-left ${on ? "pop -translate-x-0.5 -translate-y-0.5" : "outline-ink lift bg-[var(--panel)]"} ${demo ? (on ? "spot" : "dimmed") : ""}`}>
-                  <span className={`outline-ink grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[var(--on-color)] ${on ? "wiggle" : "group-wiggle"}`} style={{ background: col }}>
-                    {I && <I className="h-7 w-7" aria-hidden />}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block font-serif text-lg font-bold leading-snug text-foreground">{f ? f.question[lang] : t(c.label_pt, c.label_en)}</span>
-                    <span className="mt-1 block text-sm leading-snug text-[var(--muted)]">{f ? f.what[lang] : t(c.simple_def_pt, c.simple_def_en)}</span>
-                    <span className="mt-2 inline-block rounded-md bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--muted)]">NASA · {c.parameter_id}</span>
+                  className={`group relative flex flex-col rounded-3xl text-left ${on ? "pop -translate-x-0.5 -translate-y-0.5" : "outline-ink lift bg-[var(--panel)]"} ${demo ? (on ? "spot" : "dimmed") : ""}`}>
+                  <ClueScene id={c.parameter_id} />
+                  <span className="flex gap-3 p-4">
+                    <span className={`outline-ink -mt-9 grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-[var(--on-color)] shadow-[3px_3px_0_0_var(--pop)] ${on ? "wiggle" : "group-wiggle"}`} style={{ background: col }}>
+                      {I && <I className="h-6 w-6" aria-hidden />}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-serif text-lg font-bold leading-snug text-foreground">{f ? f.question[lang] : t(c.label_pt, c.label_en)}</span>
+                      <span className="mt-1 block text-sm leading-snug text-[var(--muted)]">{f ? f.what[lang] : t(c.simple_def_pt, c.simple_def_en)}</span>
+                      <span className="mt-2 inline-block rounded-md bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--muted)]">NASA · {c.parameter_id}</span>
+                    </span>
                   </span>
                   {on && <span className="outline-ink pop-in absolute -right-2 -top-2 grid h-8 w-8 place-items-center rounded-full bg-[var(--mint)] text-[var(--on-color)]"><Check className="h-4 w-4" strokeWidth={3.5} aria-hidden /></span>}
                 </button>
@@ -672,52 +680,79 @@ export default function EarthSleuthsApp() {
                 }} />
             )}
           </div>
-          <div className={`mt-4 grid gap-3 ${twoScenes ? "sm:grid-cols-2" : ""}`}>
-            {([["A", sceneA, setSceneA, "var(--brand)"], ...(twoScenes ? [["B", sceneB, setSceneB, "var(--orange)"]] : [])] as [string, ScenePoint, (s: ScenePoint) => void, string][]).map(([k, s, set, col]) => (
-              <div key={k} onClick={() => setMapTarget(k as "A" | "B")}
-                className="flex cursor-pointer flex-wrap items-center gap-2 rounded-2xl border-[2.5px] bg-[var(--panel)] p-3 text-sm font-semibold"
-                style={{ borderColor: (twoScenes ? mapTarget === k : true) ? col : "var(--line)" }}>
-                <span className="grid h-8 w-8 place-items-center rounded-full font-serif font-bold text-white" style={{ background: col }}>{k}</span>
-                <input aria-label={t(`Nome do lugar ${k}`, `Place ${k} name`)} value={s.region_name} onChange={(e) => set({ ...s, region_name: e.target.value })}
-                  className="min-w-0 flex-1 rounded-xl border-2 border-[var(--line)] bg-transparent px-2.5 py-1.5 text-foreground" />
-              </div>
-            ))}
+          <div className="mt-4 flex flex-wrap gap-3">
+            {([["A", sceneA, "var(--brand)"], ...(twoScenes ? [["B", sceneB, "var(--orange)"]] : [])] as [string, ScenePoint, string][]).map(([k, s, col]) => {
+              const on = twoScenes && mapTarget === k;
+              return (
+                <button key={k} type="button" disabled={!twoScenes} onClick={() => setMapTarget(k as "A" | "B")} aria-pressed={twoScenes ? on : undefined}
+                  style={on ? { background: `color-mix(in oklab, ${col} 22%, var(--panel))` } : undefined}
+                  className={`inline-flex min-w-0 items-center gap-2.5 rounded-full py-2 pl-2 pr-5 text-left ${on ? "pop-sm" : "bg-[var(--panel-2)]"}`}>
+                  <span className="outline-ink grid h-10 w-10 shrink-0 place-items-center rounded-full text-white" style={{ background: col }}><MapPin className="h-5 w-5" aria-hidden /></span>
+                  <span key={s.region_name} className="reveal min-w-0 truncate font-serif text-lg font-bold text-foreground">{shortName(s.region_name)}</span>
+                </button>
+              );
+            })}
           </div>
           </div>
         )}
 
         {step === 3 && (
           <div key="s3" className="page-in">
-          <StepHead title={t("Quantos anos vamos olhar?", "How many years should we look at?")} hint={t("Uma tendência precisa de tempo. Com menos de 15 anos não dá para separar a mudança do ruído.", "A trend needs time. Under 15 years, change can't be told apart from noise.")} />
-          <div className="mb-7 flex flex-wrap items-center gap-3">
-            {PERIODS.map((p) => (
-              <button key={p.id} type="button" aria-pressed={activePeriod === p.id} onClick={() => { setStartYear(p.from); setEndYear(p.to); }}
-                className={`btn-pop h-12 rounded-full px-5 font-serif font-bold ${activePeriod === p.id ? "bg-[var(--sun)] text-[var(--on-color)]" : "bg-[var(--panel)] text-foreground"} ${demo ? (activePeriod === p.id ? "spot" : "dimmed") : ""}`}>
-                {t(p.pt, p.en)}
-              </button>
-            ))}
-            <span className="text-sm font-semibold text-[var(--muted)]">{t("ou arraste a régua 👇", "or drag the timeline 👇")}</span>
-          </div>
-          <div className="flex items-end justify-between">
-            <span className="font-serif text-5xl font-bold tabular-nums text-foreground">{startYear}</span>
-            <span key={nYears} className={`outline-ink pop-in rounded-full px-4 py-1.5 font-serif text-lg font-bold text-[var(--on-color)] ${nYears >= MIN_YEARS ? "bg-[var(--mint)]" : "bg-[var(--coral)]"}`}>
+          <StepHead title={t("De quando até quando?", "From when to when?")} hint={t("Arraste as duas pontas da linha do tempo. Com menos de 15 anos não dá para separar a mudança do ruído.", "Drag both ends of the timeline. Under 15 years, change can't be told apart from noise.")} />
+          <div className={`rounded-3xl ${demo ? "spot" : ""}`}>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            {([[startYear, "old", t("De", "From")], [endYear, "new", t("Até", "To")]] as const).map(([y, kind, label], i) => {
+              const era = ERAS.find((e) => y < e.before) ?? ERAS[ERAS.length - 1];
+              return (
+                <div key={kind} className={`outline-ink relative flex items-center gap-3 rounded-3xl p-3 shadow-[5px_5px_0_0_var(--pop)] sm:p-4 ${kind === "old" ? "year-old -rotate-1 justify-self-start" : "year-new order-3 rotate-1 justify-self-end"}`}>
+                  <span key={era.before} className="outline-ink pop-in grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/85 text-[#1b1440] sm:h-14 sm:w-14"><era.Icon className="h-7 w-7" aria-hidden /></span>
+                  <span>
+                    <span className="block font-mono text-[11px] font-bold uppercase tracking-[0.2em] opacity-80">{label}</span>
+                    <span key={y} className="tick block font-serif text-4xl font-bold leading-none tabular-nums sm:text-5xl">{y}</span>
+                    <span className="mt-1 block text-xs font-bold opacity-80">{t(era.pt, era.en)}</span>
+                  </span>
+                  {i === 0 && <span aria-hidden className="grain pointer-events-none absolute inset-0 rounded-3xl" />}
+                </div>
+              );
+            })}
+            <span key={nYears} className={`outline-ink pop-in order-2 rounded-full px-4 py-1.5 font-serif text-lg font-bold text-[var(--on-color)] ${nYears >= MIN_YEARS ? "bg-[var(--mint)]" : "bg-[var(--coral)]"}`}>
               {nYears} {t("anos", "years")}
             </span>
-            <span className="font-serif text-5xl font-bold tabular-nums text-foreground">{endYear}</span>
           </div>
-          <div className="relative mt-5">
-            <div className="outline-ink absolute inset-x-0 top-1/2 h-4 -translate-y-1/2 rounded-full bg-[var(--panel-2)]" />
-            <div className="absolute top-1/2 h-4 -translate-y-1/2 rounded-full border-y-[2.5px] border-[var(--stroke)] bg-gradient-to-r from-[var(--aqua)] via-[var(--sun)] to-[var(--coral)]"
-              style={{ left: `${pct(startYear)}%`, right: `${100 - pct(endYear)}%` }} />
+          <div className="relative mt-8">
+            <div className="outline-ink absolute inset-x-0 top-1/2 h-5 -translate-y-1/2 rounded-full bg-[var(--panel-2)]" />
+            <div className="timeline-fill absolute top-1/2 h-5 -translate-y-1/2 rounded-full border-y-[2.5px] border-[var(--stroke)]"
+              style={{ left: `${pct(startYear)}%`, right: `${100 - pct(endYear)}%`, backgroundSize: `${10000 / Math.max(1, pct(endYear) - pct(startYear))}% 100%`, backgroundPosition: `${(pct(startYear) / Math.max(0.01, 100 - (pct(endYear) - pct(startYear)))) * 100}% 0` }} />
             <div className="dual-range">
               <input type="range" min={FIRST_YEAR} max={LAST_YEAR} value={startYear} aria-label={t("Ano inicial", "Start year")}
-                onChange={(e) => setStartYear(Math.min(Number(e.target.value), endYear - 1))} />
+                onChange={(e) => setStartYear(Math.max(dataStart, Math.min(Number(e.target.value), endYear - 1)))} />
               <input type="range" min={FIRST_YEAR} max={LAST_YEAR} value={endYear} aria-label={t("Ano final", "End year")}
                 onChange={(e) => setEndYear(Math.max(Number(e.target.value), startYear + 1))} />
             </div>
           </div>
-          <div className="mt-2 flex justify-between font-mono text-xs font-semibold text-[var(--muted)]">
-            {[1981, 1990, 2000, 2010, 2020, 2025].map((y) => <span key={y}>{y}</span>)}
+          <div className="relative mt-3 h-12">
+            {ERAS.map((e, i) => {
+              const y = i === 0 ? FIRST_YEAR : ERAS[i - 1].before;
+              const lit = y >= startYear && y <= endYear;
+              return (
+                <span key={y} className={`absolute top-0 flex -translate-x-1/2 flex-col items-center gap-0.5 transition ${lit ? "text-foreground" : "text-[var(--muted)] opacity-45"}`} style={{ left: `${Math.min(97, Math.max(3, pct(y)))}%` }}>
+                  <e.Icon className={`h-5 w-5 ${lit ? "wiggle" : ""}`} aria-hidden />
+                  <span className="font-mono text-xs font-bold">{y}</span>
+                </span>
+              );
+            })}
+          </div>
+          </div>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1.5 text-sm font-bold text-foreground"><Database className="h-4 w-4 text-[var(--brand)]" aria-hidden />{t("Dados da NASA para cada pista:", "NASA data for each clue:")}</span>
+            {clues.map((id) => {
+              const I = CLUE_ICON[id];
+              return (
+                <span key={id} className="outline-ink inline-flex items-center gap-1.5 rounded-full bg-[var(--panel)] px-3 py-1 text-sm font-bold text-foreground">
+                  {I && <I className="h-4 w-4" aria-hidden />}{friendlyOf(id)?.short[lang] ?? id} · {clueById(id)?.min_year ?? FIRST_YEAR}–{LAST_YEAR}
+                </span>
+              );
+            })}
           </div>
           {nYears < MIN_YEARS && (
             <p className="mt-3 font-bold text-[var(--warning)]">⚠️ {t(`Com menos de ${MIN_YEARS} anos o resultado sai como "poucos dados".`, `Under ${MIN_YEARS} years the result will say "not enough data".`)}</p>

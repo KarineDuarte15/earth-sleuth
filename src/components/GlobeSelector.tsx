@@ -13,12 +13,9 @@ function loadWorld(): Promise<Country[]> {
 
 const INK = "#1b1440";
 const LAND = ["#3fe0ae", "#8ff0c8", "#bff3d9", "#ffe9b8", "#7fe3b0"];
-const NEAR = 1.55, FAR = 4.4;
-
-// The pointer over the globe is a magnifying glass; the click lands on the centre of the lens.
-const LENS_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(
-  `<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'><path d='M30 30 43 43' stroke='#1b1440' stroke-width='9' stroke-linecap='round'/><path d='M30 30 43 43' stroke='#ff9248' stroke-width='4.5' stroke-linecap='round'/><circle cx='19' cy='19' r='14' fill='rgba(255,255,255,.35)' stroke='#1b1440' stroke-width='4'/><circle cx='19' cy='19' r='2.2' fill='#1b1440'/></svg>`,
-)}") 19 19, crosshair`;
+const NEAR = 1.2, FAR = 4.4;
+// The data square is drawn at least this many pixels wide, so it never vanishes when zoomed out.
+const MIN_SQUARE_PX = 16;
 
 /** Paints the comic-style Earth: flat sticker colours, bold country outlines, country names. */
 function paintEarth(world: Country[], width: number): HTMLCanvasElement {
@@ -179,7 +176,7 @@ export default function GlobeSelector(props: Props) {
           panel.position.x = s * 0.075;
           sat.add(panel);
         }
-        sat.position.set(1.5, 0, 0);
+        sat.position.set(1.38, 0, 0);
         orbit.add(sat);
         scene.add(orbit);
 
@@ -212,7 +209,7 @@ export default function GlobeSelector(props: Props) {
         };
 
         // one marker per scene: pin, pulsing ring and the NASA data square on the ground
-        interface Marker { root: InstanceType<typeof THREE.Group>; pin: InstanceType<typeof THREE.Group>; shade: InstanceType<typeof THREE.Mesh>; ring: InstanceType<typeof THREE.Mesh>; normal: InstanceType<typeof THREE.Vector3>; born: number; key: string }
+        interface Marker { root: InstanceType<typeof THREE.Group>; square: InstanceType<typeof THREE.Group>; pin: InstanceType<typeof THREE.Group>; shade: InstanceType<typeof THREE.Mesh>; ring: InstanceType<typeof THREE.Mesh>; normal: InstanceType<typeof THREE.Vector3>; born: number; key: string }
         const markers: Partial<Record<"A" | "B", Marker>> = {};
         const drop = (root: InstanceType<typeof THREE.Object3D>) => root.traverse((o) => {
           const m = o as InstanceType<typeof THREE.Mesh>;
@@ -239,12 +236,14 @@ export default function GlobeSelector(props: Props) {
           ring.position.copy(normal).multiplyScalar(1.004);
           const { latStep, lonStep } = latest.current;
           const corners = [[-1, -1], [-1, 1], [1, 1], [1, -1]].map(([a, b]) => at(point.latitude + (a * latStep) / 2, point.longitude + (b * lonStep) / 2, 1.003));
-          const quad = new THREE.BufferGeometry().setFromPoints([corners[0], corners[1], corners[2], corners[0], corners[2], corners[3]]);
-          root.add(new THREE.Mesh(quad, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })));
-          root.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(corners), new THREE.LineBasicMaterial({ color: INK })));
+          const square = new THREE.Group();
+          square.add(new THREE.Mesh(new THREE.BufferGeometry().setFromPoints([corners[0], corners[1], corners[2], corners[0], corners[2], corners[3]]),
+            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false })));
+          square.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(corners), new THREE.LineBasicMaterial({ color: INK })));
+          root.add(square);
           root.add(pin, ring, shade);
           scene.add(root);
-          markers[which] = { root, pin, shade, ring, normal, born: performance.now(), key };
+          markers[which] = { root, square, pin, shade, ring, normal, born: performance.now(), key };
         };
 
         // the dashed flight path between the two places
@@ -269,9 +268,25 @@ export default function GlobeSelector(props: Props) {
           arc = { root, curve, dot, key };
         };
 
-        const ghost = makePin("#ffffff", 0.6);
-        ghost.visible = false;
-        scene.add(ghost);
+        // The pointer over the planet is the pin itself, with the square it would select under its tip.
+        const ghost = makePin("#ffc93c", 0.92);
+        const ghostGeo = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 6 }, () => new THREE.Vector3()));
+        const ghostLine = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 4 }, () => new THREE.Vector3()));
+        const ghostSquare = new THREE.Group();
+        ghostSquare.add(new THREE.Mesh(ghostGeo, new THREE.MeshBasicMaterial({ color: 0xffc93c, transparent: true, opacity: 0.75, side: THREE.DoubleSide, depthWrite: false })));
+        ghostSquare.add(new THREE.LineLoop(ghostLine, new THREE.LineBasicMaterial({ color: INK })));
+        const ghostAt = new THREE.Vector3();
+        // its corners are rewritten on every move, so the stale bounds must not cull it
+        ghostSquare.children.forEach((o) => { o.frustumCulled = false; });
+        ghost.visible = ghostSquare.visible = false;
+        scene.add(ghost, ghostSquare);
+        const toLatLon = (n: InstanceType<typeof THREE.Vector3>) => {
+          let lon = (Math.atan2(n.z, -n.x) * 180) / Math.PI - 180;
+          if (lon < -180) lon += 360;
+          return { lat: 90 - (Math.acos(n.y) * 180) / Math.PI, lon };
+        };
+        // Grow a square around its own centre: scale it and shift it back so the centre stays put.
+        const grow = (g: InstanceType<typeof THREE.Group>, centre: InstanceType<typeof THREE.Vector3>, f: number) => { g.scale.setScalar(f); g.position.copy(centre).multiplyScalar(1.003 * (1 - f)); };
 
         // camera: it orbits the planet and always looks at its centre
         const focusOf = () => { const p = latest.current; return p.activeTarget === "B" && p.sceneB ? p.sceneB : p.sceneA; };
@@ -321,30 +336,43 @@ export default function GlobeSelector(props: Props) {
             const k = (cam.dist - 1) * 0.11;
             goal.lon = cam.lon = cam.lon - dx * k;
             goal.lat = cam.lat = Math.max(-80, Math.min(80, cam.lat + dy * k));
-            ghost.visible = false;
+            ghost.visible = ghostSquare.visible = false;
             el.style.cursor = "grabbing";
             return;
           }
           const p = e.pointerType === "mouse" ? pick(e) : null;
-          ghost.visible = !!p;
-          if (p) { const n = p.clone().normalize(); ghost.position.copy(n).multiplyScalar(1.03); ghost.quaternion.setFromUnitVectors(up, lean(n)); }
+          ghost.visible = ghostSquare.visible = !!p;
+          el.style.cursor = p ? "none" : "grab";
+          if (!p) return;
+          const n = p.clone().normalize();
+          ghostAt.copy(n);
+          ghost.position.copy(n).multiplyScalar(1.004);
+          ghost.quaternion.setFromUnitVectors(up, lean(n));
+          const { lat, lon } = toLatLon(n), { latStep, lonStep } = latest.current;
+          const c = [[-1, -1], [-1, 1], [1, 1], [1, -1]].map(([a, b]) => at(lat + (a * latStep) / 2, lon + (b * lonStep) / 2, 1.003));
+          ghostGeo.setFromPoints([c[0], c[1], c[2], c[0], c[2], c[3]]);
+          ghostLine.setFromPoints(c);
         };
         const onUp = (e: PointerEvent) => {
           const d = down;
           down = null;
-          el.style.cursor = LENS_CURSOR;
+          el.style.cursor = "grab";
           if (!d || d.moved || e.type === "pointercancel") return;
           const p = pick(e);
           if (!p) return;
           const n = p.clone().normalize();
-          const lat = 90 - (Math.acos(n.y) * 180) / Math.PI;
-          let lon = (Math.atan2(n.z, -n.x) * 180) / Math.PI - 180;
-          if (lon < -180) lon += 360;
+          const { lat, lon } = toLatLon(n);
           const la = Number(lat.toFixed(4)), lo = Number(lon.toFixed(4));
           latest.current.onSelectPoint(latest.current.activeTarget, la, lo, countryAt(world, la, lo));
         };
-        const onLeave = () => { ghost.visible = false; };
-        el.style.cursor = LENS_CURSOR;
+        const onLeave = () => { ghost.visible = ghostSquare.visible = false; };
+        // Over the planet the wheel zooms instead of scrolling the page.
+        const onWheel = (e: WheelEvent) => {
+          e.preventDefault();
+          goal.dist = Math.max(NEAR, Math.min(FAR, goal.dist * (e.deltaY > 0 ? 1.14 : 0.88)));
+        };
+        el.addEventListener("wheel", onWheel, { passive: false });
+        el.style.cursor = "grab";
         el.addEventListener("pointerdown", onDown);
         el.addEventListener("pointermove", onMove);
         el.addEventListener("pointerup", onUp);
@@ -371,21 +399,27 @@ export default function GlobeSelector(props: Props) {
           cam.dist += (goal.dist - cam.dist) * ease;
           camera.position.copy(at(cam.lat, cam.lon, cam.dist));
           camera.lookAt(0, 0, 0);
-          const size = ((cam.dist - 1) / 1.5) * 0.95;
+          const size = ((cam.dist - 1) / 1.5) * 0.6;
+          // how much to enlarge a data square so it stays MIN_SQUARE_PX wide on screen
+          const pxUnit = (0.5735 * (cam.dist - 1)) / (el.clientHeight || 500);
+          const big = Math.max(1, (MIN_SQUARE_PX * pxUnit) / ((latest.current.latStep * Math.PI) / 180));
           for (const m of Object.values(markers)) {
             if (!m) continue;
             const t = still ? 1 : Math.min(1, (now - m.born) / 850);
             const height = (1 - bounce(t)) * 0.9;
             m.pin.position.copy(m.normal).multiplyScalar(1 + height);
-            m.pin.scale.setScalar(size * 1.25);
+            m.pin.scale.setScalar(size);
+            grow(m.square, m.normal, big);
             m.shade.scale.setScalar(0.03 * size * (1 - height * 0.6));
             const k = still ? 0.5 : ((now - m.born) % 1700) / 1700;
-            m.ring.scale.setScalar(0.02 + k * 0.16 * size);
+            m.ring.scale.setScalar(size * (0.05 + k * 0.22));
             (m.ring.material as InstanceType<typeof THREE.MeshBasicMaterial>).opacity = t < 1 ? 0 : 0.85 * (1 - k);
           }
-          ghost.scale.setScalar(size * 1.25);
+          ghost.scale.setScalar(size);
+          grow(ghostSquare, ghostAt, big);
           if (arc) arc.dot.position.copy(arc.curve.getPoint(still ? 0.5 : (now % 2600) / 2600));
           if (!still) { clouds.rotation.y = now * 0.000012; orbit.rotation.y = now * 0.00035; sat.rotation.y = now * 0.001; }
+          orbit.visible = cam.dist > 3.2;
           cloudMat.opacity = Math.max(0, Math.min(0.75, (cam.dist - 2.9) * 0.8));
           renderer.render(scene, camera);
         };
@@ -400,6 +434,7 @@ export default function GlobeSelector(props: Props) {
           el.removeEventListener("pointerup", onUp);
           el.removeEventListener("pointercancel", onUp);
           el.removeEventListener("pointerleave", onLeave);
+          el.removeEventListener("wheel", onWheel);
           api.current = null;
           drop(scene);
           renderer.dispose();
@@ -427,7 +462,8 @@ export default function GlobeSelector(props: Props) {
       {ready && (
         <>
           <p className="outline-ink pointer-events-none absolute left-3 top-3 -rotate-1 rounded-full bg-[var(--sun)] px-3.5 py-1.5 text-sm font-extrabold text-[var(--on-color)] shadow-[3px_3px_0_0_var(--pop)]">
-            📌 {pt ? "Gire o planeta e clique para cravar o alfinete" : "Spin the planet and click to drop pin"} {props.activeTarget}
+            📌 {pt ? "Gire o planeta e clique para cravar o alfinete" : "Spin the planet and click to drop the"}
+            {props.sceneB ? (props.activeTarget === "A" ? (pt ? " azul" : " blue pin") : (pt ? " laranja" : " orange pin")) : (pt ? "" : " pin")}
           </p>
           <p className="outline-ink pointer-events-none absolute bottom-3 left-3 rounded-full bg-[var(--panel)] px-3 py-1 font-mono text-[11px] font-semibold text-foreground">
             {pt ? "cada quadrado de dado tem ~55 km" : "each data square is ~55 km"}

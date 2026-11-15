@@ -439,6 +439,39 @@ h1, h2, h3, h4 { font-family: "Fredoka", "Nunito", system-ui, sans-serif; letter
 .sweep { animation: sweep 0.85s cubic-bezier(.4,0,.3,1) both; }
 @keyframes sweep { 0% { left: -20%; top: 55%; rotate: -18deg; opacity: 0; } 15% { opacity: 1; } 50% { top: 18%; } 85% { opacity: 1; } 100% { left: 96%; top: 45%; rotate: 14deg; opacity: 0; } }
 
+/* clue scenes */
+.scene-pulse { transform-box: fill-box; transform-origin: center; animation: scene-pulse 2.4s ease-in-out infinite; }
+@keyframes scene-pulse { 0%, 100% { scale: 1; } 50% { scale: 1.14; } }
+.scene-rise { animation: scene-rise 2.8s ease-in infinite; }
+@keyframes scene-rise { 0% { translate: 0 14px; opacity: 0; } 30% { opacity: 1; } 100% { translate: 0 -34px; opacity: 0; } }
+.scene-mercury { transform-box: fill-box; transform-origin: bottom; animation: scene-mercury 3.4s ease-in-out infinite; }
+@keyframes scene-mercury { 0%, 100% { scale: 1 0.3; } 55%, 80% { scale: 1 1; } }
+.scene-window { animation: scene-window 3.2s steps(1) infinite; }
+@keyframes scene-window { 0%, 62%, 70%, 100% { opacity: 1; } 64%, 68% { opacity: 0.35; } }
+.scene-rain { animation: scene-rain 0.95s linear infinite; }
+@keyframes scene-rain { 0% { translate: 8px -10px; opacity: 0; } 15% { opacity: 1; } 100% { translate: -8px 42px; opacity: 0.2; } }
+.scene-drift { animation: scene-drift 6s ease-in-out infinite; }
+@keyframes scene-drift { 0%, 100% { translate: -14px 0; } 50% { translate: 22px 0; } }
+.scene-ripple { animation: scene-ripple 1.5s ease-out infinite; }
+@keyframes scene-ripple { 0% { scale: 0.2; opacity: 1; } 100% { scale: 1.5; opacity: 0; } }
+.scene-water { animation: scene-water 5s ease-in-out infinite; }
+@keyframes scene-water { 0%, 100% { translate: 0 0; } 50% { translate: 0 16px; } }
+.scene-sink { animation: scene-sink 2.4s ease-in infinite; }
+@keyframes scene-sink { 0% { translate: 0 -34px; opacity: 0; } 25% { opacity: 1; } 100% { translate: 0 26px; opacity: 0; } }
+.scene-grow { animation: scene-grow 5s ease-in-out infinite; }
+@keyframes scene-grow { 0%, 100% { scale: 0.55; } 50% { scale: 1.08; } }
+.scene-steam { animation: scene-steam 3.3s ease-out infinite; }
+@keyframes scene-steam { 0% { translate: 0 18px; opacity: 0; scale: 0.6; } 25% { opacity: 0.95; } 100% { translate: 6px -62px; opacity: 0; scale: 1.25; } }
+.pop:hover .scene-rain, .lift:hover .scene-rain { animation-duration: 0.5s; }
+
+/* period step: an aged card for the first year, a bright one for the last */
+.year-old { background: #e3c690; color: #4a2f10; filter: sepia(0.35) saturate(0.85); }
+.year-new { background: linear-gradient(135deg, #3fd4ff, #a78bff 60%, #ff6b98); color: #1b1440; }
+.grain { opacity: 0.35; mix-blend-mode: multiply; background-image: radial-gradient(#6b4a1e 0.8px, transparent 1px), radial-gradient(#6b4a1e 0.6px, transparent 0.9px); background-size: 7px 7px, 11px 11px; background-position: 0 0, 3px 5px; }
+.tick { animation: tick 0.25s cubic-bezier(.2,.9,.3,1.4); }
+@keyframes tick { from { translate: 0 -8px; opacity: 0.2; } to { translate: 0 0; opacity: 1; } }
+.timeline-fill { background-image: linear-gradient(90deg, #b98a4c, #e3c690 25%, #ffc93c 50%, #3fd4ff 78%, #a78bff); background-repeat: no-repeat; }
+
 .marquee { display: flex; overflow: hidden; user-select: none; }
 .marquee > div { display: flex; flex-shrink: 0; align-items: center; gap: 2.25rem; padding-right: 2.25rem; animation: marquee 32s linear infinite; }
 @keyframes marquee { to { transform: translateX(-100%); } }
