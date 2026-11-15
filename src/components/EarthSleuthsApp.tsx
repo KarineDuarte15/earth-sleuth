@@ -93,7 +93,7 @@ type SectionId = (typeof SECTIONS)[number];
 
 const SECTION_LINE: Record<SectionId | "q2" | "q3", DemoLine> = {
   topo: { pt: "Oi! Eu sou o Sleuth, um detetive de dados. Vamos descobrir se o clima está mudando mesmo em algum lugar?", en: "Hi! I'm Sleuth, a data detective. Shall we find out if the climate is really changing somewhere?" },
-  casos: { pt: "Escolha um caso e aperte Assistir. Eu preencho cada passo e explico tudo no caminho.", en: "Pick a case and press Watch. I'll fill in each step and explain it as we go." },
+  casos: { pt: "Comece aqui! Escolha um caso e aperte Assistir. Eu resolvo na sua frente e explico cada passo.", en: "Start here! Pick a case and press Watch. I'll solve it in front of you and explain every step." },
   q1: { pt: "Passo 1: qual é a sua pergunta? Cada cartão é uma variável climática da NASA, explicada em palavras simples.", en: "Step 1: what's your question? Each card is a NASA climate variable, in plain words." },
   q2: { pt: "Passo 2: onde investigar? Toque num lugar ou no mapa. Dica: compare dois lugares, a mesma pista pode subir num e descer no outro!", en: "Step 2: where should we look? Tap a place or the map. Tip: compare two places, the same clue can rise in one and fall in the other!" },
   q3: { pt: "Passo 3: quantos anos? Preciso de pelo menos 15 para dar um veredito. Mais anos, evidência mais forte.", en: "Step 3: how many years? I need at least 15 to give a verdict. More years, stronger evidence." },
@@ -447,17 +447,6 @@ export default function EarthSleuthsApp() {
                 {t("Investigar agora", "Investigate now")} <ArrowDown className="h-5 w-5" aria-hidden />
               </a>
             </div>
-            <ul className="fade-up delay-4 mt-9 flex flex-wrap gap-3">
-              {[
-                { I: Database, c: "var(--aqua)", v: t("45 anos de dados", "45 years of data") },
-                { I: Sparkles, c: "var(--coral)", v: t(`${FRONTEND_CLUES.length} pistas do clima`, `${FRONTEND_CLUES.length} climate clues`) },
-                { I: Sigma, c: "var(--mint)", v: t("teste de Mann-Kendall", "Mann-Kendall test") },
-              ].map(({ I, c, v }, i) => (
-                <li key={v} className="outline-ink inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-extrabold text-[var(--on-color)] shadow-[3px_3px_0_0_var(--pop)]" style={{ background: c, rotate: `${[-2, 1.5, -1][i]}deg` }}>
-                  <I className="h-4 w-4" aria-hidden />{v}
-                </li>
-              ))}
-            </ul>
           </div>
           <div className="pop-in delay-2 mt-24 sm:mt-0"><HeroStage /></div>
         </div>
@@ -478,24 +467,8 @@ export default function EarthSleuthsApp() {
       {/* HOW IT WORKS + DEMO CASES */}
       <section id="casos" className="scroll-mt-24 border-b-[2.5px] border-[var(--stroke)] bg-[var(--band)] py-16">
         <div className="mx-auto max-w-6xl px-4">
-          {sectionTitle(t("Como funciona", "How it works"), <>{t("Todo detetive segue ", "Every detective follows ")}<span className="marker">{t("4 passos", "4 steps")}</span></>, "var(--aqua)")}
-          <ol className="relative mb-20 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { I: HelpCircle, c: "var(--grape)", h: t("Pergunte", "Ask"), d: t("O que você quer descobrir? Noites, calor, chuva, solo...", "What do you want to find out? Nights, heat, rain, soil...") },
-              { I: MapPin, c: "var(--coral)", h: t("Aponte o lugar", "Point at a place"), d: t("Qualquer ponto do planeta, ou dois para comparar.", "Any point on Earth, or two to compare.") },
-              { I: CalendarRange, c: "var(--tang)", h: t("Escolha os anos", "Choose the years"), d: t("De 15 a 45 anos de dados mensais da NASA.", "15 to 45 years of monthly NASA data.") },
-              { I: Stamp, c: "var(--mint)", h: t("Receba o veredito", "Get the verdict"), d: t("O quê, onde, quanto e se é significativo.", "What, where, how much and whether it's significant.") },
-            ].map(({ I, c, h, d }, i) => (
-              <li key={i} data-reveal="zoom" style={{ transitionDelay: `${i * 110}ms`, rotate: `${[-1.5, 1, -1, 1.5][i]}deg` }} className="pop lift group relative rounded-3xl p-5 pt-9">
-                <span className="outline-ink absolute -top-5 left-5 grid h-11 w-11 place-items-center rounded-full bg-[var(--panel)] font-serif text-xl font-bold text-foreground shadow-[3px_3px_0_0_var(--pop)]">{i + 1}</span>
-                <span className="outline-ink group-wiggle mb-3 grid h-14 w-14 place-items-center rounded-2xl text-[var(--on-color)]" style={{ background: c }}><I className="h-7 w-7" aria-hidden /></span>
-                <span className="block font-serif text-xl font-bold text-foreground">{h}</span>
-                <span className="mt-1 block text-[15px] text-[var(--muted)]">{d}</span>
-              </li>
-            ))}
-          </ol>
-
-          {sectionTitle(t("Casos de demonstração", "Demo cases"), <>{t("Veja o Sleuth ", "Watch Sleuth ")}<span className="text-gradient">{t("resolver um caso", "crack a case")}</span></>, "var(--coral)")}
+          {sectionTitle(t("Comece por aqui", "Start here"), <>{t("Escolha um caso e ", "Pick a case and ")}<span className="text-gradient">{t("aperte Assistir", "press Watch")}</span></>, "var(--coral)")}
+          <p data-reveal className="-mt-4 mb-8 text-center text-lg font-semibold text-[var(--muted)]">{t("O Sleuth resolve o caso na sua frente e explica cada passo.", "Sleuth solves the case in front of you and explains every step.")}</p>
           <div className="grid gap-7 md:grid-cols-3">
             {PRESET_CASES.map((c, i) => {
               const col = ["var(--sun)", "var(--coral)", "var(--aqua)"][i % 3];
@@ -526,6 +499,12 @@ export default function EarthSleuthsApp() {
                 </div>
               );
             })}
+          </div>
+          <div data-reveal className="mt-12 flex flex-col items-center gap-3 text-center">
+            <p className="font-serif text-xl font-bold text-foreground">{t("Já entendeu como funciona?", "Got the idea?")}</p>
+            <a href="#q1" className="btn-pop inline-flex h-14 items-center gap-2 rounded-full bg-[var(--panel)] px-7 font-serif text-lg font-bold text-foreground">
+              {t("Agora é a sua vez", "Now it's your turn")} <ArrowDown className="h-5 w-5" aria-hidden />
+            </a>
           </div>
         </div>
       </section>
@@ -791,6 +770,12 @@ export default function EarthSleuthsApp() {
                   </div>
                 );
               })}
+              <div className="pop flex flex-col items-center gap-4 rounded-3xl p-6 text-center sm:flex-row sm:justify-between sm:text-left">
+                <p className="font-serif text-xl font-bold text-foreground">{t("Caso encerrado! E agora?", "Case closed! What next?")}</p>
+                <button type="button" onClick={() => { setStep(1); scrollToId("q1"); }} className="btn-pop inline-flex h-14 items-center gap-2 rounded-full bg-[var(--sun)] px-6 font-serif text-lg font-bold text-[var(--on-color)]">
+                  <Search className="h-5 w-5" aria-hidden /> {t("Investigar outro caso", "Investigate another case")}
+                </button>
+              </div>
               <ComparisonExport result={result} lang={lang} />
               {ACCOUNT_FEATURES_ENABLED && <ComparisonSynthesis result={result} lang={lang} />}
             </div>
