@@ -11,6 +11,7 @@ export interface ClueSpec {
   unit_hint: string;
   source_mission: string;
   data_type_pt: string;
+  data_type_en?: string;
   spatial_resolution: string;
   lat_step: number;
   lon_step: number;

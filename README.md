@@ -29,7 +29,7 @@ Uma experiência investigativa para transformar perguntas ambientais em evidênc
 
 **Earth Sleuths** é um laboratório visual para investigar mudanças ambientais locais.
 
-Você escolhe uma pergunta, aponta uma região no mapa e seleciona as pistas que deseja cruzar. O sistema busca séries mensais da **NASA POWER**, calcula tendências e devolve um dossiê legível — com contexto, incerteza, procedência e limites da evidência.
+Você escolhe uma pergunta, crava um alfinete num globo 3D e seleciona as pistas que deseja cruzar. O sistema busca séries mensais da **NASA POWER**, calcula tendências e devolve um dossiê legível — com contexto, incerteza, procedência e limites da evidência.
 
 > Não é uma máquina de confirmar suspeitas.  
 > É uma ferramenta para descobrir o que os dados permitem afirmar.
@@ -224,6 +224,11 @@ O [`vercel.json`](./vercel.json) encaminha `/api/*` para `api/index.py`. Antes d
 Os dados são do **NASA Langley Research Center (LaRC) POWER Project**, financiado pelo NASA Earth Science/Applied Science Program.
 
 Projeto independente, sem endosso da NASA.
+
+Recursos de terceiros na interface:
+
+- **Globo 3D:** contornos dos países do [Natural Earth](https://www.naturalearthdata.com/) 1:50m (domínio público), via [world-atlas](https://github.com/topojson/world-atlas), desenhados com [three.js](https://threejs.org/).
+- **Personagem 3D:** [Bunny Detective](https://sketchfab.com/3d-models/bunny-detective-b2ab08f1f5d04d9182400735d6471368), por bird (birdii), CC BY 4.0.
 
 Desenvolvido para transformar curiosidade ambiental em investigação pública, verificável e visual.
 

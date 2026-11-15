@@ -30,7 +30,7 @@ export const CLUE_CATALOG: Record<string, ServerClueSpec> = {
     "parameter_id": "T2M_MIN",
     "label_pt": "Temperatura mínima (calor noturno)",
     "label_en": "Minimum air temperature (night heat)",
-    "simple_def_pt": "Média mensal das mínimas diárias a 2 m — indica se as noites esquentaram.",
+    "simple_def_pt": "Média mensal das mínimas diárias a 2 m. Indica se as noites esquentaram.",
     "simple_def_en": "Monthly mean of daily minimum temperature at 2 m.",
     "unit_fallback": "°C",
     "sdg_targets": [
@@ -151,30 +151,5 @@ export const CLUE_CATALOG: Record<string, ServerClueSpec> = {
     "lat_step": 0.5,
     "lon_step": 0.625,
     "min_year": 1981
-  },
-  "IMERG_PRECTOT": {
-    "parameter_id": "IMERG_PRECTOT",
-    "label_pt": "Precipitação por satélite (GPM IMERG)",
-    "label_en": "Satellite precipitation (GPM IMERG)",
-    "simple_def_pt": "Estimativa de chuva por constelação de satélites GPM (desde 2001).",
-    "simple_def_en": "Precipitation estimate from the GPM satellite constellation (since 2001).",
-    "unit_fallback": "unid. da API",
-    "data_type_pt": "Estimativa de satélite, não medição de pluviômetro",
-    "data_type_en": "Satellite estimate, not a rain-gauge measurement",
-    "source_mission": "NASA POWER / GPM IMERG",
-    "communities": [
-      "SB",
-      "AG",
-      "RE"
-    ],
-    "spatial_resolution": "0,1° × 0,1° (~10 km)",
-    "lat_step": 0.1,
-    "lon_step": 0.1,
-    "min_year": 2001,
-    "sdg_targets": [
-      "6.4",
-      "13.1",
-      "11.b"
-    ]
   }
 };
