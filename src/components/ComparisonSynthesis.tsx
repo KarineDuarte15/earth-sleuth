@@ -3,7 +3,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
 import { canExportComparison } from "@/lib/comparison-report";
 import { prepareSynthesis, type ComparisonSynthesis as Synthesis } from "@/lib/comparison-synthesis";
 import { synthesizeComparison } from "@/lib/comparison-synthesis.functions";
@@ -14,21 +13,16 @@ export default function ComparisonSynthesis({ result, lang }: { result: Investig
   const [synthesis, setSynthesis] = useState<Synthesis | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [signedIn, setSignedIn] = useState(false);
   const version = useRef(0);
   const generate = useServerFn(synthesizeComparison);
   const t = (pt: string, en: string) => lang === "pt" ? pt : en;
-  useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => setSignedIn(!!session));
-    return () => data.subscription.unsubscribe();
-  }, []);
   useEffect(() => { version.current++; setQuestion(result.question); setSynthesis(null); setError(""); setBusy(false); }, [result, lang]);
   useEffect(() => () => { version.current++; }, []);
   if (!canExportComparison(result)) return null;
   return <section aria-labelledby="synthesis-title" className="space-y-4 border-y border-border py-6">
     <h3 id="synthesis-title" className="flex items-center gap-2 text-xl font-bold text-foreground"><Sparkles className="text-primary" />{t("Síntese da comparação por IA", "AI comparison synthesis")}</h3>
     <form className="space-y-3" onSubmit={async event => {
-      event.preventDefault(); if (busy || !signedIn) return;
+      event.preventDefault(); if (busy) return;
       const current = ++version.current;
       setBusy(true); setError("");
       try {
@@ -36,14 +30,13 @@ export default function ComparisonSynthesis({ result, lang }: { result: Investig
         if (current !== version.current) return;
         if (response.synthesis) setSynthesis(response.synthesis);
         else setError(response.error ?? t("Síntese indisponível.", "Synthesis unavailable."));
-      } catch { if (current === version.current) setError(t("Não foi possível gerar a síntese. Confira sua sessão e tente novamente.", "Unable to generate the synthesis. Check your session and try again.")); }
+      } catch { if (current === version.current) setError(t("Não foi possível gerar a síntese. Tente novamente.", "Unable to generate the synthesis. Try again.")); }
       finally { if (current === version.current) setBusy(false); }
     }}>
       <label htmlFor="synthesis-question" className="block text-sm font-semibold">{t("Pergunta para a síntese", "Synthesis question")}</label>
       <Textarea id="synthesis-question" value={question} maxLength={2000} disabled={busy} onChange={e => setQuestion(e.target.value)} className="min-h-24" />
       <p className="text-sm text-muted-foreground">{t("Ao enviar, sua pergunta, os dados mensais A/B e as fontes desta investigação serão compartilhados com o modelo. A síntese pode conter erros e não altera o veredito estatístico.", "Sending shares your question, A/B monthly data and this investigation's sources with the model. The synthesis may contain errors and does not change the statistical verdict.")}</p>
-      <Button type="submit" disabled={busy || !signedIn || question.trim().length < 3} className="max-w-full whitespace-normal">{busy ? <Loader2 className="animate-spin" /> : <Sparkles />}{busy ? t("Gerando síntese…", "Generating synthesis…") : t("Enviar pergunta e dados", "Send question and data")}</Button>
-      {!signedIn && <p className="text-sm text-muted-foreground">{t("Entre na sua conta na busca de locais para gerar a síntese.", "Sign in through the place search to generate the synthesis.")}</p>}
+      <Button type="submit" disabled={busy || question.trim().length < 3} className="max-w-full whitespace-normal">{busy ? <Loader2 className="animate-spin" /> : <Sparkles />}{busy ? t("Gerando síntese…", "Generating synthesis…") : t("Enviar pergunta e dados", "Send question and data")}</Button>
     </form>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {synthesis && <div aria-live="polite" className="space-y-5 break-words text-sm leading-relaxed">

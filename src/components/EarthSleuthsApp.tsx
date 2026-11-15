@@ -1,7 +1,6 @@
-// Address search and the AI comparison summary need a signed-in account (Supabase + Lovable gateway).
-// Space Apps judges must reach the whole project without a login, so both stay off for the submission.
-// Set to true to bring them back; their code is unchanged.
-const ACCOUNT_FEATURES_ENABLED = false;
+// The AI comparison summary calls a paid model with the server's own key (AI_* in .env.example),
+// so it only shows when the deployment opts in with VITE_AI_SYNTHESIS=on.
+const AI_SYNTHESIS_ENABLED = import.meta.env.VITE_AI_SYNTHESIS === "on";
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ClientOnly, useNavigate } from "@tanstack/react-router";
@@ -654,10 +653,8 @@ export default function EarthSleuthsApp() {
               </span>
             </button>
           </div>
-          {ACCOUNT_FEATURES_ENABLED && (
-            <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
-              onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
-          )}
+          <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
+            onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
           <div className={`map-unfold outline-ink relative overflow-hidden rounded-3xl shadow-[6px_6px_0_0_var(--pop)] ${demo ? "spot-soft" : ""}`} onPointerEnter={() => setPeering(true)} onPointerLeave={() => setPeering(false)}>
             {globeFailed ? (
               <MapSelector lang={lang} sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
@@ -837,7 +834,7 @@ export default function EarthSleuthsApp() {
                 </button>
               </div>
               <ComparisonExport result={result} lang={lang} />
-              {ACCOUNT_FEATURES_ENABLED && <ComparisonSynthesis result={result} lang={lang} />}
+              {AI_SYNTHESIS_ENABLED && <ComparisonSynthesis result={result} lang={lang} />}
             </div>
           )}
         </div>
