@@ -9,7 +9,7 @@ import { analyzeInvestigation } from "@/lib/analyze.functions";
 import {
   Thermometer, Moon, Sun, CloudRain, Sprout, Leaf, Search, Wand2, SplitSquareHorizontal, Share2, Check, AlertCircle,
   MapPin, ScanSearch, ArrowRight, ArrowDown, Sparkles, Database, Sigma, Play, Trees, Building2, Waves, Droplets, Wind,
-  BookOpen, HelpCircle, CalendarRange, Settings2, type LucideIcon,
+  BookOpen, HelpCircle, CalendarRange, Settings2, Stamp, Pin, type LucideIcon,
 } from "lucide-react";
 import { FRONTEND_CLUES, PRESET_CASES, REGION_SHORTCUTS, PELOTAS, clueById, type PresetCase } from "@/lib/catalog";
 import { interpretQuestion } from "@/lib/interpreter";
@@ -21,9 +21,9 @@ import PlaceSearch from "@/components/PlaceSearch";
 import ComparisonExport from "@/components/ComparisonExport";
 import ComparisonSynthesis from "@/components/ComparisonSynthesis";
 import SiteHeader from "@/components/SiteHeader";
-import HeroPreview from "@/components/HeroPreview";
+import HeroStage from "@/components/HeroStage";
 import CaseVerdict from "@/components/CaseVerdict";
-import SleuthGuide, { type GuideMood } from "@/components/SleuthGuide";
+import SleuthGuide, { type GuideMood, type GuideSpot } from "@/components/SleuthGuide";
 
 const MapSelectorLazy = lazy(() => import("@/components/MapSelector"));
 const mapFallback = <div className="flex h-[340px] items-center justify-center rounded-2xl border border-[var(--line)] bg-[var(--panel-2)] text-sm text-[var(--muted)]">Loading map…</div>;
@@ -41,6 +41,10 @@ const MIN_YEARS = 15;
 
 const CLUE_ICON: Record<string, LucideIcon> = {
   T2M: Thermometer, T2M_MIN: Moon, T2M_MAX: Sun, PRECTOTCORR: CloudRain, GWETROOT: Sprout, EVPTRNS: Leaf,
+};
+
+const CLUE_COLOR: Record<string, string> = {
+  T2M: "var(--coral)", T2M_MIN: "var(--grape)", T2M_MAX: "var(--tang)", PRECTOTCORR: "var(--aqua)", GWETROOT: "var(--mint)", EVPTRNS: "var(--sun)",
 };
 
 // Each shortcut stands for a kind of landscape, as the challenge suggests (desert, rain forest, city...).
@@ -99,6 +103,25 @@ const SECTION_LINE: Record<SectionId, DemoLine> = {
   mural: { pt: "Casos resolvidos vão para o mural. Cada cartão é um link que reabre a investigação.", en: "Solved cases go on the board. Each card is a link that reopens the case." },
 };
 
+// Sleuth walks to a different spot for each part of the page.
+const SPOT: Record<SectionId, GuideSpot> = {
+  topo: "hero", casos: "left", q1: "right", q2: "left", q3: "right", veredito: "left", ods: "right", caderno: "left", mural: "right",
+};
+
+const CONFETTI_COLORS = ["#ffc93c", "#ff6b98", "#3fd4ff", "#a78bff", "#3fe0ae", "#ff9248"];
+/** A short burst of confetti when a real trend is found. */
+function Confetti({ burst }: { burst: string }) {
+  const pieces = useMemo(() => Array.from({ length: 44 }, (_, i) => ({
+    left: Math.random() * 100, delay: Math.random() * 0.6, dur: 1.8 + Math.random() * 1.6, w: 7 + Math.random() * 8, c: CONFETTI_COLORS[i % 6],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  })), [burst]);
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-[60] overflow-hidden">
+      {pieces.map((p, i) => <span key={i} className="confetti" style={{ left: `${p.left}%`, width: p.w, height: p.w * 1.6, background: p.c, animationDelay: `${p.delay}s`, animationDuration: `${p.dur}s` }} />)}
+    </div>
+  );
+}
+
 interface MuralCard {
   id: string; question: string; parameterId: string; regions: string;
   status: string; headline: string; shareUrl: string;
@@ -106,17 +129,18 @@ interface MuralCard {
 
 interface RunInput { clues: string[]; sceneA: ScenePoint; sceneB: ScenePoint | null; startYear: number; endYear: number; question: string }
 
-function Question({ id, n, title, hint, children }: { id: string; n: number; title: string; hint?: string; children: React.ReactNode }) {
+function Question({ id, n, title, hint, color, Icon, children }: { id: string; n: number; title: string; hint?: string; color: string; Icon: LucideIcon; children: React.ReactNode }) {
   return (
-    <section id={id} data-reveal className="surface relative scroll-mt-24 rounded-3xl p-5 sm:p-8">
-      <div className="mb-6 flex items-start gap-4">
-        <span aria-hidden className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] font-serif text-lg font-bold text-white shadow-[var(--button-shadow)]">{n}</span>
-        <div className="min-w-0">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">{title}</h2>
-          {hint && <p className="mt-1 text-[15px] text-[var(--muted)]">{hint}</p>}
+    <section id={id} data-reveal className="pop relative scroll-mt-28 rounded-[32px]">
+      <div className="dots relative flex items-center gap-4 overflow-hidden rounded-t-[29px] border-b-[2.5px] border-[var(--stroke)] p-5 sm:p-6" style={{ backgroundColor: color }}>
+        <span aria-hidden className="outline-ink grid h-14 w-14 shrink-0 -rotate-6 place-items-center rounded-2xl bg-[var(--panel)] font-serif text-3xl font-bold text-foreground shadow-[3px_3px_0_0_var(--pop)]">{n}</span>
+        <div className="min-w-0 text-[var(--on-color)]">
+          <h2 className="text-2xl font-bold leading-tight sm:text-4xl">{title}</h2>
+          {hint && <p className="mt-1 text-[15px] font-semibold opacity-80">{hint}</p>}
         </div>
+        <Icon aria-hidden className="float absolute -right-4 -top-5 h-28 w-28 rotate-12 text-[var(--on-color)] opacity-15" />
       </div>
-      {children}
+      <div className="p-5 sm:p-8">{children}</div>
     </section>
   );
 }
@@ -345,6 +369,14 @@ export default function EarthSleuthsApp() {
     return { text: t("Hmm, nenhuma tendência clara desta vez. Os dados sobem e descem demais. Isso também é pista: com mais anos, a resposta pode aparecer.", "Hmm, no clear trend this time. The data wiggles too much. That's still a clue: with more years, the answer may show up."), real: false };
   }, [result, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [confetti, setConfetti] = useState<string | null>(null);
+  useEffect(() => {
+    if (!result || !resultLine?.real) return;
+    setConfetti(result.case_id);
+    const id = setTimeout(() => setConfetti(null), 4200);
+    return () => clearTimeout(id);
+  }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [talking, setTalking] = useState(false);
   const guideText = demo ? demo.text
     : loading ? t("Investigando... estou buscando décadas de dados mensais da NASA e testando cada pista.", "Investigating... I'm pulling decades of monthly NASA data and testing each clue.")
@@ -376,194 +408,218 @@ export default function EarthSleuthsApp() {
     { k: t("Reanálise (MERRA-2)", "Reanalysis (MERRA-2)"), v: t("Um modelo da NASA que junta observações de satélites e estações e entrega um registro sem falhas desde 1980.", "A NASA model that blends satellite and station observations into a gap-free record since 1980.") },
   ];
 
+  const sectionTitle = (kicker: string, title: React.ReactNode, color: string) => (
+    <div data-reveal className="mb-8 text-center">
+      <span className="outline-ink inline-block -rotate-2 rounded-full px-4 py-1 text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--on-color)] shadow-[3px_3px_0_0_var(--pop)]" style={{ background: color }}>{kicker}</span>
+      <h2 className="mt-4 text-4xl font-bold leading-tight text-foreground sm:text-5xl">{title}</h2>
+    </div>
+  );
+
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col overflow-x-clip">
       <SiteHeader lang={lang} setLang={setLang} boardCount={mural.length} />
+      {confetti && <Confetti burst={confetti} />}
 
       {/* HERO */}
-      <section id="topo" className="hero-bg">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-14 pt-12 sm:pt-16 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:pb-20 lg:pt-20">
+      <section id="topo" className="hero-bg -mt-[76px] pt-[76px]">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-10 sm:pt-14 lg:grid-cols-[1.1fr_1fr] lg:pb-20">
           <div>
-            <p className="fade-up inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--panel)]/80 px-3 py-1.5 text-xs font-semibold text-[var(--muted)] shadow-sm backdrop-blur">
-              <span className="pulse-dot h-2 w-2 rounded-full bg-[var(--success)]" aria-hidden />
-              {t("Space Apps 2026 · Desafio Trend Detective", "Space Apps 2026 · Trend Detective challenge")}
+            <p className="fade-up outline-ink inline-flex -rotate-2 items-center gap-2 rounded-full bg-[var(--panel)] px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-wider text-foreground shadow-[3px_3px_0_0_var(--pop)]">
+              <span className="pulse-dot h-2.5 w-2.5 rounded-full bg-[var(--success)]" aria-hidden />
+              {t("Missão aberta · 3 casos para resolver", "Mission open · 3 cases to crack")}
             </p>
-            <h1 className="fade-up delay-1 mt-5 text-[2.5rem] font-bold leading-[1.05] text-foreground sm:text-6xl lg:text-[3.9rem]">
-              {t("O clima está ", "Is the climate ")}<span className="text-gradient">{t("mudando mesmo", "really changing")}</span>
-              {t(" onde você mora?", " where you live?")}
+            <h1 className="fade-up delay-1 mt-6 text-[2.9rem] font-bold leading-[1.02] text-foreground sm:text-7xl">
+              {t("Vire um ", "Become a ")}<span className="text-gradient">{t("detetive", "climate")}</span>{t(" do ", " ")}
+              <span className="marker">{t("clima", "detective")}</span>
+              <Search className="wiggle ml-2 inline h-10 w-10 text-[var(--tang)] sm:h-14 sm:w-14" aria-hidden />
             </h1>
-            <p className="fade-up delay-2 mt-6 max-w-xl text-lg leading-relaxed text-[var(--muted)]">
-              {t("Vire detetive de dados com o Sleuth. Escolha uma pista, um lugar e um período: buscamos até 45 anos de dados da NASA, testamos como os cientistas testam e explicamos o veredito em palavras simples.",
-                "Become a data detective with Sleuth. Pick a clue, a place and a period: we pull up to 45 years of NASA data, test it the way scientists do, and explain the verdict in plain words.")}
+            <p className="fade-up delay-2 mt-6 max-w-xl text-xl leading-relaxed text-[var(--muted)]">
+              {t("O planeta deixa pistas. Escolha uma, aponte um lugar e descubra com o Sleuth, usando 45 anos de dados da NASA, se a mudança é ",
+                "The planet leaves clues. Pick one, point at a place and find out with Sleuth, using 45 years of NASA data, whether the change is ")}
+              <b className="text-foreground">{t("real", "real")}</b>{t(" ou ", " or ")}<b className="text-foreground">{t("só ruído", "just noise")}</b>.
             </p>
-            <div className="fade-up delay-3 mt-8 flex flex-col gap-3 sm:flex-row">
-              <a href="#casos" className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-6 text-base font-semibold text-[var(--primary-foreground)] shadow-[var(--button-shadow)] transition hover:-translate-y-0.5 hover:brightness-110">
-                <Play className="h-4 w-4" aria-hidden /> {t("Assistir a um caso", "Watch a case")}
+            <div className="fade-up delay-3 mt-8 flex flex-col gap-4 sm:flex-row">
+              <a href="#casos" className="btn-pop group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[var(--sun)] px-7 font-serif text-lg font-bold text-[var(--on-color)]">
+                <Play className="group-wiggle h-5 w-5 fill-current" aria-hidden /> {t("Assistir a um caso", "Watch a case")}
               </a>
-              <a href="#q1" className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-[var(--line)] bg-[var(--panel)] px-6 text-base font-semibold text-foreground transition hover:border-[var(--brand)]">
-                {t("Investigar por conta própria", "Investigate on my own")} <ArrowDown className="h-4 w-4" aria-hidden />
+              <a href="#q1" className="btn-pop inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[var(--panel)] px-7 font-serif text-lg font-bold text-foreground">
+                {t("Investigar agora", "Investigate now")} <ArrowDown className="h-5 w-5" aria-hidden />
               </a>
             </div>
-            <dl className="fade-up delay-4 mt-10 grid max-w-lg grid-cols-3 gap-4 border-t border-[var(--line)] pt-6">
+            <ul className="fade-up delay-4 mt-9 flex flex-wrap gap-3">
               {[
-                { I: Database, v: "45", k: t("anos de dados da NASA", "years of NASA data") },
-                { I: Sparkles, v: String(FRONTEND_CLUES.length), k: t("pistas do clima", "climate clues") },
-                { I: Sigma, v: "p < 0.05", k: t("teste de Mann-Kendall", "Mann-Kendall test") },
-              ].map(({ I, v, k }) => (
-                <div key={k}>
-                  <dt className="sr-only">{k}</dt>
-                  <dd className="flex items-center gap-1.5 font-serif text-xl font-bold tabular-nums text-foreground sm:text-2xl"><I className="h-4 w-4 text-[var(--brand)]" aria-hidden />{v}</dd>
-                  <dd className="mt-0.5 text-xs leading-snug text-[var(--muted)]">{k}</dd>
-                </div>
+                { I: Database, c: "var(--aqua)", v: t("45 anos de dados", "45 years of data") },
+                { I: Sparkles, c: "var(--coral)", v: t(`${FRONTEND_CLUES.length} pistas do clima`, `${FRONTEND_CLUES.length} climate clues`) },
+                { I: Sigma, c: "var(--mint)", v: t("teste de Mann-Kendall", "Mann-Kendall test") },
+              ].map(({ I, c, v }, i) => (
+                <li key={v} className="outline-ink inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-extrabold text-[var(--on-color)] shadow-[3px_3px_0_0_var(--pop)]" style={{ background: c, rotate: `${[-2, 1.5, -1][i]}deg` }}>
+                  <I className="h-4 w-4" aria-hidden />{v}
+                </li>
               ))}
-            </dl>
+            </ul>
           </div>
-          <div className="fade-up delay-2"><HeroPreview lang={lang} /></div>
+          <div className="pop-in delay-2 mt-24 sm:mt-0"><HeroStage /></div>
         </div>
       </section>
 
-      {/* HOW A DETECTIVE WORKS + DEMO CASES */}
-      <section id="casos" className="scroll-mt-24 pb-4">
+      {/* MARQUEE */}
+      <div className="marquee border-y-[2.5px] border-[var(--stroke)] bg-[#1b1440] py-3 font-serif text-lg font-bold text-[#ffc93c]" aria-hidden>
+        {[0, 1].map((k) => (
+          <div key={k}>
+            {FRONTEND_CLUES.map((c, i) => {
+              const I = CLUE_ICON[c.parameter_id];
+              return <span key={c.parameter_id} className="flex items-center gap-2.5 whitespace-nowrap" style={{ color: ["#ffc93c", "#3fd4ff", "#ff6b98", "#3fe0ae", "#a78bff", "#ff9248"][i % 6] }}>{I && <I className="h-5 w-5" />}{friendlyOf(c.parameter_id)?.question[lang]}<span className="pl-6 text-white/40">✦</span></span>;
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* HOW IT WORKS + DEMO CASES */}
+      <section id="casos" className="scroll-mt-24 border-b-[2.5px] border-[var(--stroke)] bg-[var(--band)] py-16">
         <div className="mx-auto max-w-6xl px-4">
-          <ol data-reveal className="mb-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {sectionTitle(t("Como funciona", "How it works"), <>{t("Todo detetive segue ", "Every detective follows ")}<span className="marker">{t("4 passos", "4 steps")}</span></>, "var(--aqua)")}
+          <ol className="relative mb-20 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { I: HelpCircle, h: t("1. Pergunte", "1. Ask"), d: t("Escolha o que quer descobrir: noites, calor, chuva, solo...", "Choose what to find out: nights, heat, rain, soil...") },
-              { I: MapPin, h: t("2. Escolha o lugar", "2. Pick a place"), d: t("Qualquer ponto do planeta, ou dois para comparar.", "Any point on Earth, or two to compare.") },
-              { I: CalendarRange, h: t("3. Defina os anos", "3. Set the years"), d: t("De 15 a 45 anos de dados mensais.", "15 to 45 years of monthly data.") },
-              { I: ScanSearch, h: t("4. Receba o veredito", "4. Get the verdict"), d: t("O quê, onde, quanto e se é significativo.", "What, where, how much, and whether it's significant.") },
-            ].map(({ I, h, d }) => (
-              <li key={h} className="flex gap-3 rounded-2xl border border-[var(--line)] bg-[var(--panel)]/70 p-4">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--panel-2)] text-[var(--brand)]"><I className="h-5 w-5" aria-hidden /></span>
-                <span><span className="block font-serif font-bold text-foreground">{h}</span><span className="text-sm text-[var(--muted)]">{d}</span></span>
+              { I: HelpCircle, c: "var(--grape)", h: t("Pergunte", "Ask"), d: t("O que você quer descobrir? Noites, calor, chuva, solo...", "What do you want to find out? Nights, heat, rain, soil...") },
+              { I: MapPin, c: "var(--coral)", h: t("Aponte o lugar", "Point at a place"), d: t("Qualquer ponto do planeta, ou dois para comparar.", "Any point on Earth, or two to compare.") },
+              { I: CalendarRange, c: "var(--tang)", h: t("Escolha os anos", "Choose the years"), d: t("De 15 a 45 anos de dados mensais da NASA.", "15 to 45 years of monthly NASA data.") },
+              { I: Stamp, c: "var(--mint)", h: t("Receba o veredito", "Get the verdict"), d: t("O quê, onde, quanto e se é significativo.", "What, where, how much and whether it's significant.") },
+            ].map(({ I, c, h, d }, i) => (
+              <li key={h} data-reveal="zoom" style={{ transitionDelay: `${i * 110}ms`, rotate: `${[-1.5, 1, -1, 1.5][i]}deg` }} className="pop lift group relative rounded-3xl p-5 pt-9">
+                <span className="outline-ink absolute -top-5 left-5 grid h-11 w-11 place-items-center rounded-full bg-[var(--panel)] font-serif text-xl font-bold text-foreground shadow-[3px_3px_0_0_var(--pop)]">{i + 1}</span>
+                <span className="outline-ink group-wiggle mb-3 grid h-14 w-14 place-items-center rounded-2xl text-[var(--on-color)]" style={{ background: c }}><I className="h-7 w-7" aria-hidden /></span>
+                <span className="block font-serif text-xl font-bold text-foreground">{h}</span>
+                <span className="mt-1 block text-[15px] text-[var(--muted)]">{d}</span>
               </li>
             ))}
           </ol>
 
-          <div data-reveal className="mb-6 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">{t("Casos de demonstração", "Demo cases")}</p>
-              <h2 className="mt-1 text-3xl font-bold text-foreground sm:text-4xl">{t("Assista ao Sleuth resolver um caso", "Watch Sleuth solve a case")}</h2>
-            </div>
-            <p className="max-w-md text-sm text-[var(--muted)]">{t("Ele preenche cada passo na tela e explica o porquê. Depois é a sua vez.", "He fills in each step on screen and explains why. Then it's your turn.")}</p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {PRESET_CASES.map((c, i) => (
-              <div key={c.id} data-reveal style={{ transitionDelay: `${i * 90}ms` }}
-                className="surface ring-gradient group relative flex flex-col rounded-3xl p-6 transition duration-300 hover:-translate-y-1">
-                <span className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-semibold text-[var(--muted)]">{t("Caso", "Case")} {String(i + 1).padStart(2, "0")}</span>
-                  <span className="flex gap-1.5">
-                    {c.clues.map((id) => { const I = CLUE_ICON[id]; return I ? <span key={id} className="grid h-8 w-8 place-items-center rounded-xl bg-[var(--panel-2)] text-[var(--brand)]"><I className="h-4 w-4" aria-hidden /></span> : null; })}
+          {sectionTitle(t("Casos de demonstração", "Demo cases"), <>{t("Veja o Sleuth ", "Watch Sleuth ")}<span className="text-gradient">{t("resolver um caso", "crack a case")}</span></>, "var(--coral)")}
+          <div className="grid gap-7 md:grid-cols-3">
+            {PRESET_CASES.map((c, i) => {
+              const col = ["var(--sun)", "var(--coral)", "var(--aqua)"][i % 3];
+              return (
+                <div key={c.id} data-reveal={["left", "zoom", "right"][i % 3]} style={{ transitionDelay: `${i * 100}ms` }} className="group relative pt-7">
+                  <span className="outline-ink absolute left-5 top-0 z-0 rounded-t-2xl border-b-0 px-4 pb-3 pt-1.5 font-mono text-xs font-bold uppercase text-[var(--on-color)]" style={{ background: col }}>
+                    {t("Caso", "Case")} #{String(i + 1).padStart(2, "0")}
                   </span>
-                </span>
-                <h3 className="mt-6 font-serif text-xl font-bold text-foreground">{t(c.title_pt.split("·")[1]?.trim() ?? c.title_pt, c.title_en.split("·")[1]?.trim() ?? c.title_en)}</h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-[var(--muted)]">{t(c.question_pt, c.question_en)}</p>
-                <p className="mt-4 flex items-center gap-1.5 text-sm text-[var(--muted)]"><MapPin className="h-3.5 w-3.5" aria-hidden />{shortName(c.sceneA.region_name)}{c.sceneB ? ` × ${shortName(c.sceneB.region_name)}` : ""}</p>
-                <div className="mt-5 flex gap-2 border-t border-[var(--line)] pt-4">
-                  <button type="button" onClick={() => void watchDemo(c)}
-                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-4 text-sm font-semibold text-[var(--primary-foreground)] transition hover:brightness-110">
-                    <Play className="h-4 w-4" aria-hidden /> {t("Assistir", "Watch")}
-                  </button>
-                  <button type="button" onClick={() => { applyCase(c); scrollToId("q1"); }}
-                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-[var(--line)] px-4 text-sm font-semibold text-foreground transition hover:border-[var(--brand)]">
-                    {t("Abrir", "Open")} <ArrowRight className="h-4 w-4" aria-hidden />
-                  </button>
+                  <div className="pop lift relative z-10 flex h-full flex-col overflow-hidden rounded-3xl">
+                    <div className="dots relative flex h-28 items-center justify-center gap-3 border-b-[2.5px] border-[var(--stroke)]" style={{ backgroundColor: col }}>
+                      {c.clues.map((id, k) => { const I = CLUE_ICON[id]; return I ? <span key={id} className="outline-ink float grid h-14 w-14 place-items-center rounded-2xl bg-[var(--panel)] text-foreground shadow-[3px_3px_0_0_var(--pop)]" style={{ animationDelay: `${-k * 0.9}s`, rotate: `${[-8, 6, -4][k % 3]}deg` }}><I className="h-7 w-7" aria-hidden /></span> : null; })}
+                      <span className="absolute right-3 top-3 rotate-6 rounded-md border-2 border-[#dc3f2c] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-[#dc3f2c]">{t("Aberto", "Open")}</span>
+                    </div>
+                    <div className="flex flex-1 flex-col p-5">
+                      <h3 className="font-serif text-2xl font-bold text-foreground">{t(c.title_pt.split("·")[1]?.trim() ?? c.title_pt, c.title_en.split("·")[1]?.trim() ?? c.title_en)}</h3>
+                      <p className="mt-2 flex-1 text-[15px] leading-relaxed text-[var(--muted)]">{t(c.question_pt, c.question_en)}</p>
+                      <p className="mt-4 flex items-center gap-1.5 text-sm font-bold text-foreground"><MapPin className="h-4 w-4 text-[var(--coral)]" aria-hidden />{shortName(c.sceneA.region_name)}{c.sceneB ? ` × ${shortName(c.sceneB.region_name)}` : ""}</p>
+                      <div className="mt-5 flex gap-2.5">
+                        <button type="button" onClick={() => void watchDemo(c)} className="btn-pop inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-4 font-serif font-bold text-[var(--primary-foreground)]">
+                          <Play className="h-4 w-4 fill-current" aria-hidden /> {t("Assistir", "Watch")}
+                        </button>
+                        <button type="button" onClick={() => { applyCase(c); scrollToId("q1"); }} className="btn-pop inline-flex h-12 items-center justify-center gap-1.5 rounded-full bg-[var(--panel)] px-4 font-serif font-bold text-foreground">
+                          {t("Abrir", "Open")} <ArrowRight className="h-4 w-4" aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 space-y-8 px-4 py-12">
-        <div data-reveal className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">{t("Sua investigação", "Your investigation")}</p>
-          <h2 className="mt-1 text-3xl font-bold text-foreground sm:text-4xl">{t("Três perguntas e um veredito", "Three questions and a verdict")}</h2>
-        </div>
+      {/* THE INVESTIGATION */}
+      <main className="mx-auto w-full max-w-6xl flex-1 space-y-12 px-4 py-16">
+        {sectionTitle(t("Sua vez", "Your turn"), <>{t("Três perguntas e um ", "Three questions and a ")}<span className="text-gradient">{t("veredito", "verdict")}</span></>, "var(--sun)")}
 
-        <Question id="q1" n={1} title={t("O que você quer descobrir?", "What do you want to find out?")}
-          hint={t("Toque em uma ou mais pistas. Cada uma é uma variável medida pela NASA, testada separadamente.", "Tap one or more clues. Each is a variable tracked by NASA, tested on its own.")}>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Question id="q1" n={1} color="var(--grape)" Icon={HelpCircle} title={t("O que você quer descobrir?", "What do you want to find out?")}
+          hint={t("Toque em uma ou mais pistas. Cada uma é uma variável da NASA, testada separadamente.", "Tap one or more clues. Each is a NASA variable, tested on its own.")}>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FRONTEND_CLUES.map((c) => {
               const on = clues.includes(c.parameter_id);
               const I = CLUE_ICON[c.parameter_id];
               const f = friendlyOf(c.parameter_id);
+              const col = CLUE_COLOR[c.parameter_id] ?? "var(--sun)";
               return (
                 <button key={c.parameter_id} type="button" aria-pressed={on} onClick={() => toggleClue(c.parameter_id)}
-                  className={`group relative flex gap-4 rounded-2xl border p-4 text-left transition duration-200 hover:-translate-y-0.5 ${on ? "border-[var(--brand)] bg-[color-mix(in_oklab,var(--brand)_9%,var(--panel))] shadow-[0_10px_28px_-16px_var(--brand)]" : "border-[var(--line)] bg-[var(--panel)] hover:border-[color-mix(in_oklab,var(--brand)_50%,var(--line))]"}`}>
-                  <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl transition ${on ? "bg-[var(--brand)] text-white" : "bg-[var(--panel-2)] text-[var(--brand)] group-hover:scale-105"}`}>
-                    {I && <I className="h-6 w-6" aria-hidden />}
+                  style={on ? { background: `color-mix(in oklab, ${col} 30%, var(--panel))` } : undefined}
+                  className={`group relative flex gap-4 rounded-3xl p-4 text-left ${on ? "pop -translate-x-0.5 -translate-y-0.5" : "outline-ink lift bg-[var(--panel)]"}`}>
+                  <span className={`outline-ink grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[var(--on-color)] ${on ? "wiggle" : "group-wiggle"}`} style={{ background: col }}>
+                    {I && <I className="h-7 w-7" aria-hidden />}
                   </span>
                   <span className="min-w-0">
-                    <span className="block font-serif text-[17px] font-bold leading-snug text-foreground">{f ? f.question[lang] : t(c.label_pt, c.label_en)}</span>
+                    <span className="block font-serif text-lg font-bold leading-snug text-foreground">{f ? f.question[lang] : t(c.label_pt, c.label_en)}</span>
                     <span className="mt-1 block text-sm leading-snug text-[var(--muted)]">{f ? f.what[lang] : t(c.simple_def_pt, c.simple_def_en)}</span>
-                    <span className="mt-2 inline-block rounded-md bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--muted)]">NASA · {c.parameter_id}</span>
+                    <span className="mt-2 inline-block rounded-md bg-[var(--panel-2)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--muted)]">NASA · {c.parameter_id}</span>
                   </span>
-                  {on && <span className="absolute right-3 top-3 grid h-6 w-6 place-items-center rounded-full bg-[var(--brand)] text-white"><Check className="h-3.5 w-3.5" aria-hidden /></span>}
+                  {on && <span className="outline-ink pop-in absolute -right-2 -top-2 grid h-8 w-8 place-items-center rounded-full bg-[var(--mint)] text-[var(--on-color)]"><Check className="h-4 w-4" strokeWidth={3.5} aria-hidden /></span>}
                 </button>
               );
             })}
           </div>
-          <div className="mt-5 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--panel-2)]/40 p-4">
-            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-foreground"><Wand2 className="h-4 w-4 text-[var(--brand)]" aria-hidden />{t("Ou pergunte do seu jeito", "Or ask in your own words")}</p>
-            <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="mt-6 rounded-3xl border-[2.5px] border-dashed border-[var(--stroke)] bg-[var(--panel-2)] p-4">
+            <p className="mb-2 flex items-center gap-1.5 font-bold text-foreground"><Wand2 className="wiggle h-4 w-4 text-[var(--coral)]" aria-hidden />{t("Ou pergunte do seu jeito", "Or ask in your own words")}</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
               <label className="relative flex-1">
                 <span className="sr-only">{t("Sua pergunta", "Your question")}</span>
-                <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[var(--muted)]" aria-hidden />
+                <Search className="absolute left-4 top-3.5 h-5 w-5 text-[var(--muted)]" aria-hidden />
                 <input value={question} onChange={(e) => setQuestion(e.target.value)} onKeyDown={(e) => e.key === "Enter" && interpret()}
                   placeholder={t("ex.: a terra está ficando mais seca?", "e.g. is the land getting drier?")}
-                  className="h-11 w-full rounded-xl border border-[var(--line)] bg-[var(--panel)] pl-10 pr-4 text-[15px] text-foreground placeholder:text-[var(--muted)]" />
+                  className="outline-ink h-12 w-full rounded-full bg-[var(--panel)] pl-11 pr-4 text-[15px] font-semibold text-foreground placeholder:font-medium placeholder:text-[var(--muted)]" />
               </label>
-              <button type="button" onClick={interpret} className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[var(--panel)] px-4 text-sm font-semibold text-foreground ring-1 ring-[var(--line)] hover:ring-[var(--brand)]">
+              <button type="button" onClick={interpret} className="btn-pop inline-flex h-12 items-center justify-center gap-1.5 rounded-full bg-[var(--coral)] px-5 font-serif font-bold text-[var(--on-color)]">
                 {t("Sugerir pistas", "Suggest clues")}
               </button>
             </div>
-            {noteText && <p className="reveal mt-3 rounded-lg bg-[color-mix(in_oklab,var(--brand)_10%,transparent)] px-3 py-2 text-sm text-[var(--brand)]" role="status">{noteText}</p>}
+            {noteText && <p className="reveal mt-3 rounded-2xl bg-[var(--panel)] px-3 py-2 text-sm font-semibold text-foreground" role="status">💡 {noteText}</p>}
           </div>
         </Question>
 
-        <Question id="q2" n={2} title={t("Onde vamos investigar?", "Where should we look?")}
+        <Question id="q2" n={2} color="var(--mint)" Icon={MapPin} title={t("Onde vamos investigar?", "Where should we look?")}
           hint={t("Escolha um tipo de lugar, toque no mapa ou digite as coordenadas.", "Pick a kind of place, tap the map or type coordinates.")}>
-          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            {REGION_SHORTCUTS.map((r) => {
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {REGION_SHORTCUTS.map((r, i) => {
               const cur = mapTarget === "B" && twoScenes ? sceneB : sceneA;
               const on = cur.region_name === r.region_name;
               const k = kindOf(r.region_name);
               const I = k?.Icon ?? MapPin;
+              const col = ["var(--sun)", "var(--aqua)", "var(--grape)", "var(--mint)", "var(--coral)", "var(--tang)"][i % 6];
               return (
                 <button key={r.region_name} type="button" aria-pressed={on} onClick={() => (mapTarget === "B" && twoScenes ? setSceneB : setSceneA)(r)}
-                  className={`flex flex-col items-start gap-1 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${on ? "border-[var(--brand)] bg-[color-mix(in_oklab,var(--brand)_9%,var(--panel))]" : "border-[var(--line)] bg-[var(--panel)] hover:border-[var(--brand)]"}`}>
-                  <I className={`h-5 w-5 ${on ? "text-[var(--brand)]" : "text-[var(--muted)]"}`} aria-hidden />
-                  <span className="text-sm font-semibold leading-tight text-foreground">{shortName(r.region_name)}</span>
-                  {k && <span className="text-xs text-[var(--muted)]">{t(k.pt, k.en)}</span>}
+                  style={on ? { background: `color-mix(in oklab, ${col} 35%, var(--panel))` } : undefined}
+                  className={`group flex flex-col items-center gap-1.5 rounded-3xl p-3 text-center ${on ? "pop" : "outline-ink lift bg-[var(--panel)]"}`}>
+                  <span className="outline-ink group-wiggle grid h-11 w-11 place-items-center rounded-full text-[var(--on-color)]" style={{ background: col }}><I className="h-5 w-5" aria-hidden /></span>
+                  <span className="font-serif text-[15px] font-bold leading-tight text-foreground">{shortName(r.region_name)}</span>
+                  {k && <span className="text-xs font-semibold text-[var(--muted)]">{t(k.pt, k.en)}</span>}
                 </button>
               );
             })}
           </div>
           <button type="button" onClick={() => { setTwoScenes((v) => !v); setMapTarget(twoScenes ? "A" : "B"); }} aria-pressed={twoScenes}
-            className={`mb-4 flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left transition ${twoScenes ? "border-[var(--orange)] bg-[color-mix(in_oklab,var(--orange)_10%,var(--panel))]" : "border-[var(--line)] bg-[var(--panel)] hover:border-[var(--orange)]"}`}>
-            <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${twoScenes ? "bg-[var(--orange)] text-white" : "bg-[var(--panel-2)] text-[var(--orange)]"}`}><SplitSquareHorizontal className="h-5 w-5" aria-hidden /></span>
+            style={twoScenes ? { background: "color-mix(in oklab, var(--tang) 30%, var(--panel))" } : undefined}
+            className={`mb-5 flex w-full items-center gap-3 rounded-3xl p-4 text-left ${twoScenes ? "pop" : "outline-ink lift bg-[var(--panel)]"}`}>
+            <span className="outline-ink grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--tang)] text-[var(--on-color)]"><SplitSquareHorizontal className="h-6 w-6" aria-hidden /></span>
             <span className="min-w-0 flex-1">
-              <span className="block font-semibold text-foreground">{twoScenes ? t("Comparando dois lugares", "Comparing two places") : t("Comparar com outro lugar", "Compare with another place")}</span>
+              <span className="block font-serif text-lg font-bold text-foreground">{twoScenes ? t("Comparando dois lugares!", "Comparing two places!") : t("Comparar com outro lugar", "Compare with another place")}</span>
               <span className="block text-sm text-[var(--muted)]">{t("A mesma pista pode subir num lugar e descer no outro, mesmo com a mesma causa.", "The same clue can rise in one place and fall in another, even with the same cause.")}</span>
             </span>
-            <span className={`h-6 w-11 shrink-0 rounded-full p-0.5 transition ${twoScenes ? "bg-[var(--orange)]" : "bg-[var(--line)]"}`} aria-hidden>
-              <span className={`block h-5 w-5 rounded-full bg-white shadow transition ${twoScenes ? "translate-x-5" : ""}`} />
+            <span className={`outline-ink h-8 w-14 shrink-0 rounded-full p-0.5 transition ${twoScenes ? "bg-[var(--mint)]" : "bg-[var(--panel-2)]"}`} aria-hidden>
+              <span className={`outline-ink block h-6 w-6 rounded-full bg-[var(--panel)] transition ${twoScenes ? "translate-x-6" : ""}`} />
             </span>
           </button>
-          <div className={`mb-4 grid gap-3 ${twoScenes ? "sm:grid-cols-2" : ""}`}>
+          <div className={`mb-5 grid gap-3 ${twoScenes ? "sm:grid-cols-2" : ""}`}>
             {([["A", sceneA, setSceneA, "var(--brand)"], ...(twoScenes ? [["B", sceneB, setSceneB, "var(--orange)"]] : [])] as [string, ScenePoint, (s: ScenePoint) => void, string][]).map(([k, s, set, col]) => (
               <div key={k} onClick={() => setMapTarget(k as "A" | "B")}
-                className="flex cursor-pointer flex-wrap items-center gap-2 rounded-2xl border bg-[var(--panel)] p-3 text-sm"
+                className="flex cursor-pointer flex-wrap items-center gap-2 rounded-2xl border-[2.5px] bg-[var(--panel)] p-3 text-sm font-semibold"
                 style={{ borderColor: (twoScenes ? mapTarget === k : true) ? col : "var(--line)" }}>
-                <MapPin className="h-4 w-4" style={{ color: col }} aria-hidden />
-                <span className="font-bold" style={{ color: col }}>{t("Lugar", "Place")} {k}</span>
+                <span className="grid h-8 w-8 place-items-center rounded-full font-serif font-bold text-white" style={{ background: col }}>{k}</span>
                 <input aria-label={t(`Nome do lugar ${k}`, `Place ${k} name`)} value={s.region_name} onChange={(e) => set({ ...s, region_name: e.target.value })}
-                  className="min-w-0 flex-1 rounded-lg border border-[var(--line)] bg-transparent px-2 py-1.5 text-foreground" />
+                  className="min-w-0 flex-1 rounded-xl border-2 border-[var(--line)] bg-transparent px-2.5 py-1.5 text-foreground" />
                 <input aria-label="Latitude" type="number" step="0.01" min={-90} max={90} value={s.latitude}
-                  onChange={(e) => set({ ...s, latitude: Number(e.target.value) })} className="w-24 rounded-lg border border-[var(--line)] bg-transparent px-2 py-1.5 text-foreground" />
+                  onChange={(e) => set({ ...s, latitude: Number(e.target.value) })} className="w-24 rounded-xl border-2 border-[var(--line)] bg-transparent px-2.5 py-1.5 font-mono text-foreground" />
                 <input aria-label="Longitude" type="number" step="0.01" min={-180} max={180} value={s.longitude}
-                  onChange={(e) => set({ ...s, longitude: Number(e.target.value) })} className="w-24 rounded-lg border border-[var(--line)] bg-transparent px-2 py-1.5 text-foreground" />
+                  onChange={(e) => set({ ...s, longitude: Number(e.target.value) })} className="w-24 rounded-xl border-2 border-[var(--line)] bg-transparent px-2.5 py-1.5 font-mono text-foreground" />
               </div>
             ))}
           </div>
@@ -571,33 +627,35 @@ export default function EarthSleuthsApp() {
             <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
               onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
           )}
-          <MapSelector lang={lang} sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
-            latStep={primary.lat_step} lonStep={primary.lon_step}
-            onSelectPoint={(target, lat, lon) =>
-              (target === "A" ? setSceneA : setSceneB)({ region_name: `${t("Ponto", "Point")} ${lat}, ${lon}`, latitude: lat, longitude: lon })} />
+          <div className="outline-ink overflow-hidden rounded-3xl">
+            <MapSelector lang={lang} sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
+              latStep={primary.lat_step} lonStep={primary.lon_step}
+              onSelectPoint={(target, lat, lon) =>
+                (target === "A" ? setSceneA : setSceneB)({ region_name: `${t("Ponto", "Point")} ${lat}, ${lon}`, latitude: lat, longitude: lon })} />
+          </div>
         </Question>
 
-        <Question id="q3" n={3} title={t("Quantos anos vamos olhar?", "How many years should we look at?")}
+        <Question id="q3" n={3} color="var(--tang)" Icon={CalendarRange} title={t("Quantos anos vamos olhar?", "How many years should we look at?")}
           hint={t("Uma tendência precisa de tempo. Com menos de 15 anos não dá para separar a mudança do ruído.", "A trend needs time. Under 15 years, change can't be told apart from noise.")}>
-          <div className="mb-6 flex flex-wrap gap-2">
+          <div className="mb-7 flex flex-wrap items-center gap-3">
             {PERIODS.map((p) => (
               <button key={p.id} type="button" aria-pressed={activePeriod === p.id} onClick={() => { setStartYear(p.from); setEndYear(p.to); }}
-                className={`h-11 rounded-full border px-4 text-sm font-semibold transition ${activePeriod === p.id ? "border-[var(--brand)] bg-[color-mix(in_oklab,var(--brand)_12%,var(--panel))] text-foreground" : "border-[var(--line)] bg-[var(--panel)] text-[var(--muted)] hover:border-[var(--brand)] hover:text-foreground"}`}>
+                className={`btn-pop h-12 rounded-full px-5 font-serif font-bold ${activePeriod === p.id ? "bg-[var(--sun)] text-[var(--on-color)]" : "bg-[var(--panel)] text-foreground"}`}>
                 {t(p.pt, p.en)}
               </button>
             ))}
-            <span className={`inline-flex h-11 items-center rounded-full px-4 text-sm ${activePeriod === "custom" ? "font-semibold text-foreground" : "text-[var(--muted)]"}`}>{t("ou arraste a régua", "or drag the timeline")}</span>
+            <span className="text-sm font-semibold text-[var(--muted)]">{t("ou arraste a régua 👇", "or drag the timeline 👇")}</span>
           </div>
           <div className="flex items-end justify-between">
-            <span className="font-serif text-4xl font-bold tabular-nums text-foreground">{startYear}</span>
-            <span className={`rounded-full px-3 py-1 text-sm font-semibold ${nYears >= MIN_YEARS ? "bg-[color-mix(in_oklab,var(--success)_14%,transparent)] text-[var(--success)]" : "bg-[color-mix(in_oklab,var(--warning)_14%,transparent)] text-[var(--warning)]"}`}>
+            <span className="font-serif text-5xl font-bold tabular-nums text-foreground">{startYear}</span>
+            <span key={nYears} className={`outline-ink pop-in rounded-full px-4 py-1.5 font-serif text-lg font-bold text-[var(--on-color)] ${nYears >= MIN_YEARS ? "bg-[var(--mint)]" : "bg-[var(--coral)]"}`}>
               {nYears} {t("anos", "years")}
             </span>
-            <span className="font-serif text-4xl font-bold tabular-nums text-foreground">{endYear}</span>
+            <span className="font-serif text-5xl font-bold tabular-nums text-foreground">{endYear}</span>
           </div>
-          <div className="relative mt-4">
-            <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-[var(--line)]" />
-            <div className="absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r from-[var(--brand-2)] to-[var(--orange)]"
+          <div className="relative mt-5">
+            <div className="outline-ink absolute inset-x-0 top-1/2 h-4 -translate-y-1/2 rounded-full bg-[var(--panel-2)]" />
+            <div className="absolute top-1/2 h-4 -translate-y-1/2 rounded-full border-y-[2.5px] border-[var(--stroke)] bg-gradient-to-r from-[var(--aqua)] via-[var(--sun)] to-[var(--coral)]"
               style={{ left: `${pct(startYear)}%`, right: `${100 - pct(endYear)}%` }} />
             <div className="dual-range">
               <input type="range" min={FIRST_YEAR} max={LAST_YEAR} value={startYear} aria-label={t("Ano inicial", "Start year")}
@@ -606,25 +664,25 @@ export default function EarthSleuthsApp() {
                 onChange={(e) => setEndYear(Math.max(Number(e.target.value), startYear + 1))} />
             </div>
           </div>
-          <div className="mt-2 flex justify-between text-xs text-[var(--muted)]">
+          <div className="mt-2 flex justify-between font-mono text-xs font-semibold text-[var(--muted)]">
             {[1981, 1990, 2000, 2010, 2020, 2025].map((y) => <span key={y}>{y}</span>)}
           </div>
           {nYears < MIN_YEARS && (
-            <p className="mt-3 text-sm text-[var(--warning)]">{t(`Com menos de ${MIN_YEARS} anos o resultado sai como "poucos dados".`, `Under ${MIN_YEARS} years the result will say "not enough data".`)}</p>
+            <p className="mt-3 font-bold text-[var(--warning)]">⚠️ {t(`Com menos de ${MIN_YEARS} anos o resultado sai como "poucos dados".`, `Under ${MIN_YEARS} years the result will say "not enough data".`)}</p>
           )}
 
-          <div className="mt-8">
+          <div className="mt-9">
             <button type="button" disabled={loading} onClick={() => void run()}
-              className="relative flex h-16 w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] px-6 text-lg font-bold text-white shadow-[var(--button-shadow)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:opacity-80">
-              {loading && <span className="scan-bar absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/35 to-transparent" aria-hidden />}
-              <ScanSearch className="h-6 w-6" aria-hidden />
-              {loading ? t("Examinando as pistas…", "Examining the clues…") : t("Examinar as evidências", "Examine the evidence")}
+              className="btn-pop group relative flex h-20 w-full items-center justify-center gap-3 overflow-hidden rounded-3xl bg-[var(--sun)] px-6 font-serif text-2xl font-bold text-[var(--on-color)] disabled:opacity-80">
+              {loading && <span className="scan-bar absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent" aria-hidden />}
+              <ScanSearch className={`h-8 w-8 ${loading ? "wiggle" : "group-wiggle"}`} aria-hidden />
+              {loading ? t("Examinando as pistas…", "Examining the clues…") : t("Examinar as evidências!", "Examine the evidence!")}
             </button>
-            <details className="mt-3 text-sm text-[var(--muted)]">
-              <summary className="inline-flex cursor-pointer items-center gap-1.5 hover:text-foreground"><Settings2 className="h-3.5 w-3.5" aria-hidden />{t("Opções avançadas", "Advanced options")}</summary>
+            <details className="mt-4 text-sm font-semibold text-[var(--muted)]">
+              <summary className="inline-flex cursor-pointer items-center gap-1.5 hover:text-foreground"><Settings2 className="h-4 w-4" aria-hidden />{t("Opções avançadas", "Advanced options")}</summary>
               <label className="mt-2 flex flex-wrap items-center gap-2">
                 {t("Fonte dos dados", "Data source")}
-                <select value={mode} onChange={(e) => setMode(e.target.value as DataMode)} className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-foreground">
+                <select value={mode} onChange={(e) => setMode(e.target.value as DataMode)} className="outline-ink rounded-xl bg-[var(--panel)] px-2 py-2 text-foreground">
                   <option value="auto">{t("NASA ao vivo, com cópia salva de reserva", "NASA live, with saved copy as backup")}</option>
                   <option value="cache">{t("Cópia salva (mais rápido)", "Saved copy (faster)")}</option>
                   <option value="live">{t("Só NASA ao vivo", "NASA live only")}</option>
@@ -633,46 +691,45 @@ export default function EarthSleuthsApp() {
             </details>
           </div>
           {error && (
-            <p className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--warning)]/40 bg-[color-mix(in_oklab,var(--warning)_10%,transparent)] p-3 text-sm text-[var(--warning)]" role="alert">
-              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden /> {error}
+            <p className="outline-ink mt-4 flex items-center gap-2 rounded-2xl bg-[var(--coral)] p-3 text-sm font-bold text-[var(--on-color)]" role="alert">
+              <AlertCircle className="h-5 w-5 shrink-0" aria-hidden /> {error}
             </p>
           )}
         </Question>
+      </main>
 
-        {/* VERDICT */}
-        <section id="veredito" className="scroll-mt-24 space-y-6">
-          <div className="text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">{t("O veredito", "The verdict")}</p>
-            <h2 className="mt-1 text-3xl font-bold text-foreground sm:text-4xl">{t("O que os dados dizem", "What the data says")}</h2>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-[var(--muted)]">{t("A estatística decide o carimbo, nunca uma IA.", "Statistics decide the stamp, never AI.")}</p>
-          </div>
+      {/* VERDICT */}
+      <section id="veredito" className="scroll-mt-24 border-y-[2.5px] border-[var(--stroke)] bg-[var(--band-2)] py-16">
+        <div className="mx-auto max-w-6xl space-y-6 px-4">
+          {sectionTitle(t("O veredito", "The verdict"), <>{t("O que os ", "What the ")}<span className="marker">{t("dados", "data")}</span>{t(" dizem", " says")}</>, "var(--mint)")}
+          <p className="-mt-4 text-center font-semibold text-[var(--muted)]">{t("A estatística decide o carimbo, nunca uma IA.", "Statistics decide the stamp, never AI.")}</p>
           {loading && !result && (
-            <div className="surface flex flex-col items-center gap-3 rounded-3xl p-10 text-center text-[var(--muted)]">
-              <ScanSearch className="h-10 w-10 animate-pulse text-[var(--brand)]" aria-hidden />
+            <div className="pop mx-auto flex max-w-md flex-col items-center gap-4 rounded-3xl p-10 text-center font-bold text-foreground">
+              <div className="radar outline-ink h-32 w-32" aria-hidden />
               {t("Buscando dados da NASA e rodando os testes…", "Fetching NASA data and running the tests…")}
             </div>
           )}
           {!result && !loading && (
-            <div className="rounded-3xl border border-dashed border-[var(--line)] bg-[var(--panel-2)]/40 p-10 text-center text-[var(--muted)]">
-              <ScanSearch className="mx-auto mb-3 h-10 w-10 text-[var(--line)]" aria-hidden />
+            <div className="mx-auto max-w-xl rounded-3xl border-[2.5px] border-dashed border-[var(--stroke)] bg-[var(--panel)]/60 p-10 text-center font-semibold text-[var(--muted)]">
+              <ScanSearch className="float mx-auto mb-3 h-12 w-12 text-[var(--brand)]" aria-hidden />
               {t("Nenhum caso aberto ainda. Responda as três perguntas e examine, ou assista a um caso lá em cima.",
                 "No case open yet. Answer the three questions and examine, or watch a case above.")}
             </div>
           )}
           {result && (
-            <div className={`space-y-8 ${loading ? "opacity-60" : ""}`}>
+            <div className={`space-y-10 ${loading ? "opacity-60" : ""}`}>
               {result.runs.map((r) => {
                 const two = !!r.scene_b;
                 const key = `${result.case_id}-${r.variable.parameter_id}`;
                 return (
-                  <div key={key} className="space-y-4">
-                    {r.errors.map((e) => <p key={e} className="rounded-xl border border-[var(--warning)]/40 bg-[color-mix(in_oklab,var(--warning)_10%,transparent)] px-3 py-2 text-sm text-[var(--warning)]">{e}</p>)}
+                  <div key={key} className="space-y-5">
+                    {r.errors.map((e) => <p key={e} className="outline-ink rounded-2xl bg-[var(--coral)] px-4 py-2 text-sm font-bold text-[var(--on-color)]">{e}</p>)}
                     {r.comparison && (
-                      <p className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${r.comparison.confirmed_opposite_trends ? "border-[var(--brand)] bg-[color-mix(in_oklab,var(--brand)_10%,transparent)] text-[var(--brand)]" : "border-[var(--line)] bg-[var(--panel)] text-[var(--muted)]"}`}>
-                        {r.scene_a && r.scene_b ? plainComparison(r.variable.parameter_id, r.scene_a, r.scene_b, lang) : t(r.comparison.summary_pt, r.comparison.summary_en)}
+                      <p className={`pop-sm rounded-2xl px-4 py-3 font-bold ${r.comparison.confirmed_opposite_trends ? "bg-[var(--mint)] text-[var(--on-color)]" : "bg-[var(--panel)] text-foreground"}`}>
+                        ⚖️ {r.scene_a && r.scene_b ? plainComparison(r.variable.parameter_id, r.scene_a, r.scene_b, lang) : t(r.comparison.summary_pt, r.comparison.summary_en)}
                       </p>
                     )}
-                    <div className={`grid gap-4 ${two ? "xl:grid-cols-2" : ""}`}>
+                    <div className={`grid gap-6 ${two ? "xl:grid-cols-2" : ""}`}>
                       {([["scene_a", t("Lugar A", "Place A"), "var(--brand)"], ["scene_b", t("Lugar B", "Place B"), "var(--orange)"]] as const).map(([k, label, color]) => {
                         const s = r[k];
                         if (!s) return null;
@@ -681,9 +738,9 @@ export default function EarthSleuthsApp() {
                     </div>
                     {r.scene_a && (
                       <div className="flex justify-end">
-                        <button type="button" onClick={() => saveToMural(r)} className="inline-flex h-11 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--panel)] px-4 text-sm font-semibold text-foreground hover:border-[var(--brand)]">
-                          {copied === key ? <Check className="h-4 w-4 text-[var(--success)]" aria-hidden /> : <Share2 className="h-4 w-4" aria-hidden />}
-                          {copied === key ? t("Salvo no mural, link copiado", "Saved to the board, link copied") : t("Salvar no mural de casos", "Save to the case board")}
+                        <button type="button" onClick={() => saveToMural(r)} className="btn-pop inline-flex h-12 items-center gap-2 rounded-full bg-[var(--tang)] px-5 font-serif font-bold text-[var(--on-color)]">
+                          {copied === key ? <Check className="h-4 w-4" aria-hidden /> : <Pin className="h-4 w-4" aria-hidden />}
+                          {copied === key ? t("No mural! Link copiado", "Pinned! Link copied") : t("Pendurar no mural", "Pin to the board")}
                         </button>
                       </div>
                     )}
@@ -694,82 +751,91 @@ export default function EarthSleuthsApp() {
               {ACCOUNT_FEATURES_ENABLED && <ComparisonSynthesis result={result} lang={lang} />}
             </div>
           )}
-        </section>
+        </div>
+      </section>
 
-        <section id="ods" data-reveal className="scroll-mt-24 pt-6"><SdgPanel activeTargets={primary.sdg_targets} lang={lang} /></section>
+      <section id="ods" className="scroll-mt-24 py-16">
+        <div data-reveal className="mx-auto max-w-6xl px-4"><SdgPanel activeTargets={primary.sdg_targets} lang={lang} /></div>
+      </section>
 
-        {/* DETECTIVE NOTEBOOK */}
-        <section id="caderno" data-reveal className="surface scroll-mt-24 rounded-3xl p-5 sm:p-8">
-          <h2 className="flex items-center gap-2 text-2xl font-bold text-foreground"><BookOpen className="h-6 w-6 text-[var(--brand)]" aria-hidden />{t("Caderno do detetive", "Detective's notebook")}</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">{t("As palavras que os cientistas usam, explicadas em uma linha.", "The words scientists use, explained in one line.")}</p>
-          <dl className="mt-5 grid gap-3 md:grid-cols-2">
-            {glossary.map((g) => (
-              <div key={g.k} className="rounded-2xl border border-[var(--line)] bg-[var(--panel-2)]/40 p-4">
-                <dt className="font-serif font-bold text-foreground">{g.k}</dt>
-                <dd className="mt-1 text-sm leading-relaxed text-[var(--muted)]">{g.v}</dd>
+      {/* DETECTIVE NOTEBOOK */}
+      <section id="caderno" className="scroll-mt-24 border-y-[2.5px] border-[var(--stroke)] bg-[var(--band)] py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          {sectionTitle(t("Glossário", "Glossary"), <><BookOpen className="wiggle mr-2 inline h-10 w-10 text-[var(--brand)]" aria-hidden />{t("Caderno do detetive", "Detective's notebook")}</>, "var(--grape)")}
+          <dl className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {glossary.map((g, i) => (
+              <div key={g.k} data-reveal="zoom" style={{ transitionDelay: `${(i % 4) * 80}ms`, rotate: `${[-1.2, 0.8, -0.6, 1.4][i % 4]}deg` }} className="pop lift ruled relative rounded-2xl p-4 pt-7">
+                <span aria-hidden className="absolute left-1/2 top-[-10px] h-5 w-16 -translate-x-1/2 rotate-[-3deg] border-2 border-[var(--stroke)] opacity-90" style={{ background: ["var(--sun)", "var(--coral)", "var(--aqua)", "var(--mint)"][i % 4] }} />
+                <dt className="font-serif text-xl font-bold text-foreground">{g.k}</dt>
+                <dd className="mt-1 text-sm leading-7 text-foreground/80">{g.v}</dd>
               </div>
             ))}
           </dl>
-        </section>
+        </div>
+      </section>
 
-        {/* CASE BOARD */}
-        <section id="mural" data-reveal className="surface scroll-mt-24 rounded-3xl p-5 sm:p-8">
-          <h2 className="text-2xl font-bold text-foreground">{t("Mural de casos", "Case board")}</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">{t("Cada cartão guarda um link que reabre a mesma investigação.", "Each card keeps a link that reopens the same investigation.")}</p>
+      {/* CASE BOARD */}
+      <section id="mural" className="cork scroll-mt-24 py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <div data-reveal className="pop mx-auto mb-8 w-fit -rotate-1 rounded-2xl px-6 py-3 text-center">
+            <h2 className="text-3xl font-bold text-foreground sm:text-4xl">📌 {t("Mural de casos", "Case board")}</h2>
+            <p className="text-sm font-semibold text-[var(--muted)]">{t("Cada cartão guarda um link que reabre a investigação.", "Each card keeps a link that reopens the investigation.")}</p>
+          </div>
           {mural.length === 0 ? (
-            <p className="mt-4 rounded-2xl border border-dashed border-[var(--line)] p-6 text-center text-sm text-[var(--muted)]">
-              {t("Resolva um caso e toque em \"Salvar no mural de casos\" para pendurar o primeiro cartão.", "Solve a case and tap \"Save to the case board\" to pin the first card.")}
+            <p className="pop mx-auto max-w-md rotate-1 rounded-2xl p-6 text-center font-semibold text-[var(--muted)]">
+              {t("Resolva um caso e toque em \"Pendurar no mural\" para colocar o primeiro cartão aqui.", "Solve a case and tap \"Pin to the board\" to put the first card here.")}
             </p>
           ) : (
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              {mural.map((c) => (
-                <a key={c.id} href={c.shareUrl} className="block rotate-[-0.6deg] rounded-2xl border border-[var(--line)] bg-[var(--panel-2)]/60 p-4 transition hover:rotate-0 hover:border-[var(--brand)]">
-                  <p className="text-xs font-bold text-[var(--brand)]">{friendlyOf(c.parameterId)?.short[lang] ?? c.parameterId} · {c.regions}</p>
-                  <h3 className="mt-1 text-base font-bold text-foreground">{c.headline}</h3>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {mural.map((c, i) => (
+                <a key={c.id} href={c.shareUrl} style={{ rotate: `${[-2, 1.5, -1, 2][i % 4]}deg` }} className="pop lift pop-in relative block rounded-2xl p-5 pt-7">
+                  <span aria-hidden className="outline-ink absolute left-1/2 top-[-12px] h-6 w-6 -translate-x-1/2 rounded-full bg-[var(--coral)]" />
+                  <p className="text-xs font-extrabold uppercase tracking-wider text-[var(--brand)]">{friendlyOf(c.parameterId)?.short[lang] ?? c.parameterId} · {c.regions}</p>
+                  <h3 className="mt-1 text-xl font-bold text-foreground">{c.headline}</h3>
                   <p className="mt-1 text-sm text-[var(--muted)]">{c.question}</p>
                 </a>
               ))}
             </div>
           )}
-        </section>
-      </main>
+        </div>
+      </section>
 
-      <footer className="mt-10 border-t border-[var(--line)] bg-[var(--panel)]">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-[1.2fr_1fr_1fr]">
+      <footer className="border-t-[2.5px] border-[var(--stroke)] bg-[#1b1440] text-[#f7f2ff]">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-[1.2fr_1fr_1fr]">
           <div>
             <a href="#topo" className="flex items-center gap-2.5">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-white shadow-sm ring-1 ring-[var(--line)]">
+              <span className="grid h-12 w-12 place-items-center rounded-full border-[2.5px] border-[#f7f2ff] bg-white">
                 <img src="/brand/orbiting-analytics-globe-256.png" alt="" width={36} height={36} loading="lazy" className="h-9 w-9 object-contain" />
               </span>
-              <span className="font-serif text-lg font-bold text-foreground">Earth <span className="text-gradient">Sleuth</span></span>
+              <span className="font-serif text-2xl font-bold">Earth<span className="text-[#ffc93c]">Sleuth</span></span>
             </a>
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--muted)]">
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#cfc6f5]">
               {t("Uma linha de tendência descreve o passado; não é previsão climática. Projeto independente, sem endosso da NASA.",
                 "A trend line describes the past; it is not a climate forecast. Independent project, not endorsed by NASA.")}
             </p>
-            <p className="mt-3 text-xs text-[var(--muted)]">
+            <p className="mt-3 text-xs text-[#cfc6f5]">
               {t("Personagem 3D: ", "3D character: ")}
-              <a href="https://sketchfab.com/3d-models/bunny-detective-b2ab08f1f5d04d9182400735d6471368" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Bunny Detective</a>
+              <a href="https://sketchfab.com/3d-models/bunny-detective-b2ab08f1f5d04d9182400735d6471368" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">Bunny Detective</a>
               {t(" por bird (birdii), CC BY 4.0.", " by bird (birdii), CC BY 4.0.")}
             </p>
           </div>
           <section aria-labelledby="nasa-resources-title">
-            <h2 id="nasa-resources-title" className="text-sm font-semibold uppercase tracking-[0.14em] text-foreground">{t("Dados da NASA", "NASA data")}</h2>
+            <h2 id="nasa-resources-title" className="font-serif text-lg font-bold text-[#3fd4ff]">{t("Dados da NASA", "NASA data")}</h2>
             <ul className="mt-4 space-y-4 text-sm">
               <li>
-                <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--brand)] hover:underline">NASA POWER ↗</a>
-                <p className="mt-1 leading-relaxed text-[var(--muted)]">{t("API de séries mensais por coordenadas, do NASA Langley Research Center.", "Monthly time-series API by coordinates, from NASA Langley Research Center.")}</p>
-                <p className="mt-1 break-words font-mono text-[11px] text-[var(--muted)]">T2M · T2M_MIN · T2M_MAX · PRECTOTCORR · GWETROOT · EVPTRNS</p>
+                <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener noreferrer" className="font-bold text-[#ffc93c] hover:underline">NASA POWER ↗</a>
+                <p className="mt-1 leading-relaxed text-[#cfc6f5]">{t("API de séries mensais por coordenadas, do NASA Langley Research Center.", "Monthly time-series API by coordinates, from NASA Langley Research Center.")}</p>
+                <p className="mt-1 break-words font-mono text-[11px] text-[#cfc6f5]">T2M · T2M_MIN · T2M_MAX · PRECTOTCORR · GWETROOT · EVPTRNS</p>
               </li>
               <li>
-                <a href="https://gmao.gsfc.nasa.gov/gmao-products/merra-2/" target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--brand)] hover:underline">GMAO MERRA-2 ↗</a>
-                <p className="mt-1 leading-relaxed text-[var(--muted)]">{t("Reanálise por trás de todas as pistas, acessada via POWER.", "Reanalysis behind every clue, accessed through POWER.")}</p>
+                <a href="https://gmao.gsfc.nasa.gov/gmao-products/merra-2/" target="_blank" rel="noopener noreferrer" className="font-bold text-[#ffc93c] hover:underline">GMAO MERRA-2 ↗</a>
+                <p className="mt-1 leading-relaxed text-[#cfc6f5]">{t("Reanálise por trás de todas as pistas, acessada via POWER.", "Reanalysis behind every clue, accessed through POWER.")}</p>
               </li>
             </ul>
           </section>
           <section aria-labelledby="method-title">
-            <h2 id="method-title" className="text-sm font-semibold uppercase tracking-[0.14em] text-foreground">{t("Método", "Method")}</h2>
-            <ul className="mt-4 space-y-2 text-sm text-[var(--muted)]">
+            <h2 id="method-title" className="font-serif text-lg font-bold text-[#3fe0ae]">{t("Método", "Method")}</h2>
+            <ul className="mt-4 space-y-2 text-sm text-[#cfc6f5]">
               <li>{t("Mann-Kendall sazonal (Hirsch e Slack, 1984)", "Seasonal Mann-Kendall (Hirsch and Slack, 1984)")}</li>
               <li>{t("Inclinação de Sen com IC de 95%", "Sen's slope with a 95% CI")}</li>
               <li>{t("Correção de Benjamini-Hochberg (FDR)", "Benjamini-Hochberg correction (FDR)")}</li>
@@ -779,7 +845,7 @@ export default function EarthSleuthsApp() {
         </div>
       </footer>
 
-      <SleuthGuide lang={lang} text={guideText} mood={guideMood} active={talking || loading || !!demo} onSkip={demo ? skipDemo : undefined} />
+      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={SPOT[section]} active={talking || loading || !!demo} onSkip={demo ? skipDemo : undefined} />
       {evidence && <EvidenceModal run={evidence.run} scene={evidence.scene} lang={lang} onClose={() => setEvidence(null)} />}
     </div>
   );

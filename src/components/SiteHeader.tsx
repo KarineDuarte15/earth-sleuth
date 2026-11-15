@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Menu, Moon, Sun, X } from "lucide-react";
+import { BookOpen, Menu, Moon, Pin, Play, Search, Stamp, Sun, X, type LucideIcon } from "lucide-react";
 import type { Lang } from "@/types/sleuth";
 
 const LOGO_SMALL_SRC = "/brand/orbiting-analytics-globe-256.png";
@@ -47,26 +47,18 @@ interface Props {
 export default function SiteHeader({ lang, setLang, boardCount }: Props) {
   const t = (pt: string, en: string) => (lang === "pt" ? pt : en);
   const [theme, setTheme] = useState<Theme>("light");
-  const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("topo");
   const [open, setOpen] = useState(false);
 
-  const links = [
-    { id: "casos", label: t("Demo", "Demo") },
-    { id: "q1", label: t("Investigar", "Investigate") },
-    { id: "veredito", label: t("Veredito", "Verdict") },
-    { id: "caderno", label: t("Caderno", "Notebook") },
-    { id: "mural", label: t("Mural", "Board"), badge: boardCount },
+  const links: { id: string; label: string; Icon: LucideIcon; color: string; badge?: number }[] = [
+    { id: "casos", label: t("Assistir", "Watch"), Icon: Play, color: "var(--coral)" },
+    { id: "q1", label: t("Investigar", "Investigate"), Icon: Search, color: "var(--aqua)" },
+    { id: "veredito", label: t("Veredito", "Verdict"), Icon: Stamp, color: "var(--mint)" },
+    { id: "caderno", label: t("Caderno", "Notebook"), Icon: BookOpen, color: "var(--sun)" },
+    { id: "mural", label: t("Mural", "Board"), Icon: Pin, color: "var(--tang)", badge: boardCount },
   ];
 
   useEffect(() => setTheme(readTheme()), []);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   // Highlight the section currently in the middle band of the viewport.
   useEffect(() => {
@@ -91,12 +83,12 @@ export default function SiteHeader({ lang, setLang, boardCount }: Props) {
     const on = active === l.id || (l.id === "q1" && (active === "q2" || active === "q3"));
     return (
       <a key={l.id} href={`#${l.id}`} onClick={() => setOpen(false)} aria-current={on ? "true" : undefined}
-        className={mobile
-          ? `flex items-center justify-between rounded-xl px-4 py-3 text-base font-medium ${on ? "bg-[var(--panel-2)] text-foreground" : "text-[var(--muted)]"}`
-          : `relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${on ? "bg-[var(--panel)] text-foreground shadow-sm" : "text-[var(--muted)] hover:text-foreground"}`}>
+        style={on ? { background: l.color } : undefined}
+        className={`group inline-flex items-center gap-1.5 rounded-full font-bold transition ${mobile ? "h-12 px-4 text-base" : "h-10 px-3.5 text-sm"} ${on ? "outline-ink text-[var(--on-color)]" : "border-[2.5px] border-transparent text-foreground hover:bg-[var(--panel-2)]"}`}>
+        <l.Icon className="group-wiggle h-4 w-4" aria-hidden />
         {l.label}
         {l.badge !== undefined && l.badge > 0 && (
-          <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[var(--orange)] px-1.5 text-[11px] font-bold text-white">{l.badge}</span>
+          <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[var(--ink)] px-1.5 text-[11px] font-extrabold text-[var(--night)]">{l.badge}</span>
         )}
       </a>
     );
@@ -104,57 +96,52 @@ export default function SiteHeader({ lang, setLang, boardCount }: Props) {
 
   const langButton = (code: Lang) => {
     const on = lang === code;
-    const tone = code === "pt"
-      ? "bg-[#009c3b]/12 text-[#00843a] ring-1 ring-[#009c3b]/40 dark:bg-[#009c3b]/20 dark:text-[#4ade80]"
-      : "bg-[#b22234]/10 text-[#b22234] ring-1 ring-[#b22234]/35 dark:bg-[#b22234]/22 dark:text-[#fca5a5]";
+    const tone = code === "pt" ? "bg-[#1fbf5f] text-[#062b14]" : "bg-[#ff6b6b] text-[#3a0a0a]";
     return (
       <button key={code} type="button" onClick={() => setLang(code)} aria-pressed={on}
         aria-label={code === "pt" ? "Português (Brasil)" : "English (United States)"}
-        className={`inline-flex h-9 min-w-10 items-center justify-center gap-1.5 rounded-full px-2.5 text-xs font-bold tracking-wide transition ${on ? tone : "text-[var(--muted)] hover:text-foreground"}`}>
-        {code === "pt" ? <FlagBR className="h-3.5 w-5 rounded-[3px] shadow-sm" /> : <FlagUS className="h-3.5 w-5 rounded-[3px] shadow-sm" />}
-        <span className="hidden sm:inline">{code === "pt" ? "PT-BR" : "EN"}</span>
+        className={`inline-flex h-9 min-w-10 items-center justify-center gap-1.5 rounded-full px-2.5 text-xs font-extrabold tracking-wide transition ${on ? `${tone} outline-ink` : "border-[2.5px] border-transparent text-[var(--muted)] hover:text-foreground"}`}>
+        {code === "pt" ? <FlagBR className="h-3.5 w-5 rounded-[3px]" /> : <FlagUS className="h-3.5 w-5 rounded-[3px]" />}
+        <span className="hidden sm:inline">{code === "pt" ? "PT" : "EN"}</span>
       </button>
     );
   };
 
+  const round = "btn-pop grid h-11 w-11 place-items-center rounded-full text-[var(--on-color)]";
   return (
-    <header className={`glass sticky top-0 z-50 border-b transition-shadow ${scrolled ? "border-[var(--line)] shadow-[0_8px_30px_-18px_hsl(var(--shadow-color)/0.45)]" : "border-transparent"}`}>
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-3">
-        <a href="#topo" className="group flex shrink-0 items-center gap-2.5" aria-label="Earth Sleuth">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-white shadow-sm ring-1 ring-[var(--line)] transition group-hover:rotate-[-6deg]">
-            <img src={LOGO_SMALL_SRC} alt="" width={36} height={36} className="h-9 w-9 object-contain" />
+    <header className="sticky top-0 z-50 px-2 pt-2 sm:px-4 sm:pt-3">
+      <div className="pop glass mx-auto flex h-[60px] max-w-6xl items-center gap-2 rounded-full pl-2 pr-2 sm:h-16 sm:gap-3 sm:pr-3">
+        <a href="#topo" className="group flex shrink-0 items-center gap-2" aria-label="Earth Sleuth">
+          <span className="outline-ink grid h-11 w-11 place-items-center rounded-full bg-white transition group-hover:rotate-[-12deg]">
+            <img src={LOGO_SMALL_SRC} alt="" width={34} height={34} className="h-[34px] w-[34px] object-contain" />
           </span>
-          <span className="leading-tight">
-            <span className="block font-serif text-[17px] font-bold text-foreground">Earth <span className="text-gradient">Sleuth</span></span>
-            <span className="hidden text-[11px] font-medium text-[var(--muted)] sm:block">{t("Detetives de tendências da Terra", "Earth System Trend Detectives")}</span>
-          </span>
+          <span className="hidden font-serif text-xl font-bold leading-none text-foreground min-[400px]:block">Earth<span className="text-gradient">Sleuth</span></span>
         </a>
 
-        <nav aria-label={t("Seções", "Sections")} className="mx-auto hidden items-center gap-0.5 rounded-full border border-[var(--line)] bg-[var(--panel-2)]/70 p-1 lg:flex">
+        <nav aria-label={t("Seções", "Sections")} className="mx-auto hidden items-center gap-0.5 lg:flex">
           {links.map((l) => navLink(l))}
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5 lg:ml-0">
-          <div role="group" aria-label={t("Idioma", "Language")} className="flex items-center gap-0.5 rounded-full border border-[var(--line)] bg-[var(--panel)] p-0.5">
+          <div role="group" aria-label={t("Idioma", "Language")} className="flex items-center gap-0.5 rounded-full bg-[var(--panel-2)] p-0.5">
             {langButton("pt")}
             {langButton("en")}
           </div>
           <button type="button" onClick={toggleTheme}
             aria-label={theme === "dark" ? t("Usar tema claro", "Switch to light theme") : t("Usar tema escuro", "Switch to dark theme")}
-            className="grid h-10 w-10 place-items-center rounded-full border border-[var(--line)] bg-[var(--panel)] text-foreground transition hover:border-[var(--brand)] hover:text-[var(--brand)]">
-            {theme === "dark" ? <Sun className="h-[18px] w-[18px]" aria-hidden /> : <Moon className="h-[18px] w-[18px]" aria-hidden />}
+            className={`${round} hover-wiggle ${theme === "dark" ? "bg-[var(--sun)]" : "bg-[var(--grape)]"}`}>
+            {theme === "dark" ? <Sun className="h-5 w-5" aria-hidden /> : <Moon className="h-5 w-5" aria-hidden />}
           </button>
           <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls="mobile-nav"
-            aria-label={t("Abrir menu", "Open menu")}
-            className="grid h-10 w-10 place-items-center rounded-full border border-[var(--line)] bg-[var(--panel)] text-foreground lg:hidden">
+            aria-label={t("Abrir menu", "Open menu")} className={`${round} bg-[var(--aqua)] lg:hidden`}>
             {open ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
           </button>
         </div>
       </div>
 
       {open && (
-        <nav id="mobile-nav" aria-label={t("Seções", "Sections")} className="reveal border-t border-[var(--line)] px-4 pb-4 pt-2 lg:hidden">
-          <div className="mx-auto grid max-w-6xl gap-1">{links.map((l) => navLink(l, true))}</div>
+        <nav id="mobile-nav" aria-label={t("Seções", "Sections")} className="pop reveal mx-auto mt-2 grid max-w-6xl gap-1 rounded-3xl p-3 lg:hidden">
+          {links.map((l) => navLink(l, true))}
         </nav>
       )}
     </header>
