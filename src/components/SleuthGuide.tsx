@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, SkipForward, X } from "lucide-react";
+import { MessageCircle, X } from "lucide-react";
 import type { Lang } from "@/types/sleuth";
 
 export type GuideMood = "idle" | "talk" | "walk" | "investigate" | "jump" | "climb";
@@ -22,8 +22,8 @@ interface Props {
   text: string;
   mood: GuideMood;
   spot: GuideSpot;
-  /** Shown during a guided demo so the visitor can leave it at any step. */
-  onSkip?: () => void;
+  /** True during the tutorial: the bubble shows at once and stays open, and the guide cannot be hidden. */
+  tour?: boolean;
   /** During a guided demo: the visitor moves to the next step with this button. */
   onNext?: () => void;
   nextLabel?: string;
@@ -175,7 +175,7 @@ function hasWebGL() {
   } catch { return false; }
 }
 
-export default function SleuthGuide({ lang, text, mood, spot, onSkip, onNext, nextLabel, active = true, cheer = 0 }: Props) {
+export default function SleuthGuide({ lang, text, mood, spot, tour = false, onNext, nextLabel, active = true, cheer = 0 }: Props) {
   const t = (pt: string, en: string) => (lang === "pt" ? pt : en);
   const reduce = useReducedMotion();
   const [ready, setReady] = useState(false);
@@ -304,7 +304,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, onNext, ne
   // when the margin is too narrow to hold it, the bubble folds away once he has finished talking.
   const margin = Math.max(0, (vw - 1152) / 2);
   const tight = small || margin < 250;
-  const bubbleVisible = (!walking || !!onNext) && (!tight || active || peek || !!onSkip || inHero);
+  const bubbleVisible = (!walking || tour) && (!tight || active || peek || tour || inHero);
   const effMood: GuideMood = poke ? "jump" : walking ? (climbing ? "climb" : "walk") : fidget ? "investigate" : mood;
 
   const base = baseSize(vw);
@@ -345,12 +345,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, onNext, ne
           <p className="mb-1 flex items-center justify-between gap-2">
             <span className="rounded-full bg-[var(--sun)] px-2 py-0.5 font-serif text-[11px] font-bold uppercase tracking-wider text-[var(--on-color)]">{t("Sr. Coelho", "Mr. Bunny")}</span>
             <span className="flex items-center gap-1">
-              {onSkip && (
-                <button type="button" onClick={onSkip} className="inline-flex h-7 items-center gap-1 rounded-full bg-[var(--coral)] px-2.5 text-[11px] font-extrabold text-[var(--on-color)]">
-                  <SkipForward className="h-3 w-3" aria-hidden /> {t("Pular", "Skip")}
-                </button>
-              )}
-              {!onNext && !onSkip && (
+              {!tour && (
             <button type="button" onClick={() => toggle(false)} aria-label={t("Esconder o guia", "Hide the guide")}
                 className="grid h-7 w-7 place-items-center rounded-full text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-foreground">
                 <X className="h-3.5 w-3.5" aria-hidden />

@@ -42,9 +42,12 @@ interface Props {
   lang: Lang;
   setLang: (l: Lang) => void;
   boardCount: number;
+  /** While the tutorial runs, the menu gives way to a "stop tutorial" button. */
+  tour?: boolean;
+  onStopTour?: () => void;
 }
 
-export default function SiteHeader({ lang, setLang, boardCount }: Props) {
+export default function SiteHeader({ lang, setLang, boardCount, tour = false, onStopTour }: Props) {
   const t = (pt: string, en: string) => (lang === "pt" ? pt : en);
   const [theme, setTheme] = useState<Theme>("light");
   const [active, setActive] = useState("topo");
@@ -118,9 +121,15 @@ export default function SiteHeader({ lang, setLang, boardCount }: Props) {
           <span className="hidden font-serif text-xl font-bold leading-none text-foreground min-[400px]:block">Earth<span className="text-gradient">Sleuth</span></span>
         </a>
 
-        <nav aria-label={t("Seções", "Sections")} className="mx-auto hidden items-center gap-0.5 lg:flex">
-          {links.map((l) => navLink(l))}
-        </nav>
+        {tour ? (
+          <p className="mx-auto hidden items-center gap-2 font-serif text-base font-bold text-foreground lg:flex">
+            <span className="pulse-dot h-2.5 w-2.5 rounded-full bg-[var(--success)]" aria-hidden /> {t("Tutorial com o Sr. Coelho", "Tutorial with Mr. Bunny")}
+          </p>
+        ) : (
+          <nav aria-label={t("Seções", "Sections")} className="mx-auto hidden items-center gap-0.5 lg:flex">
+            {links.map((l) => navLink(l))}
+          </nav>
+        )}
 
         <div className="ml-auto flex items-center gap-1.5 lg:ml-0">
           <div role="group" aria-label={t("Idioma", "Language")} className="flex items-center gap-0.5 rounded-full bg-[var(--panel-2)] p-0.5">
@@ -132,14 +141,20 @@ export default function SiteHeader({ lang, setLang, boardCount }: Props) {
             className={`${round} hover-wiggle ${theme === "dark" ? "bg-[var(--sun)]" : "bg-[var(--grape)]"}`}>
             {theme === "dark" ? <Sun className="h-5 w-5" aria-hidden /> : <Moon className="h-5 w-5" aria-hidden />}
           </button>
-          <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls="mobile-nav"
-            aria-label={t("Abrir menu", "Open menu")} className={`${round} bg-[var(--aqua)] lg:hidden`}>
-            {open ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
-          </button>
+          {tour ? (
+            <button type="button" onClick={onStopTour} className="btn-pop inline-flex h-11 items-center gap-1.5 rounded-full bg-[var(--coral)] px-3.5 text-sm font-extrabold text-[var(--on-color)]">
+              <X className="h-4 w-4" strokeWidth={3} aria-hidden /> <span>{t("Parar", "Stop")}<span className="hidden sm:inline"> tutorial</span></span>
+            </button>
+          ) : (
+            <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls="mobile-nav"
+              aria-label={t("Abrir menu", "Open menu")} className={`${round} bg-[var(--aqua)] lg:hidden`}>
+              {open ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
+            </button>
+          )}
         </div>
       </div>
 
-      {open && (
+      {open && !tour && (
         <nav id="mobile-nav" aria-label={t("Seções", "Sections")} className="pop reveal mx-auto mt-2 grid max-w-6xl gap-1 rounded-3xl p-3 lg:hidden">
           {links.map((l) => navLink(l, true))}
         </nav>

@@ -9,7 +9,7 @@ import { analyzeInvestigation } from "@/lib/analyze.functions";
 import {
   Thermometer, Moon, Sun, CloudRain, Sprout, Leaf, Search, Wand2, SplitSquareHorizontal, Share2, Check, AlertCircle,
   MapPin, ScanSearch, ArrowRight, ArrowDown, Sparkles, Database, Sigma, Play, Trees, Building2, Waves, Droplets, Wind,
-  BookOpen, HelpCircle, CalendarRange, Settings2, Stamp, Pin, type LucideIcon,
+  BookOpen, HelpCircle, CalendarRange, Settings2, Pin, Pencil, Paperclip, type LucideIcon,
 } from "lucide-react";
 import { FRONTEND_CLUES, PRESET_CASES, REGION_SHORTCUTS, PELOTAS, clueById, type PresetCase } from "@/lib/catalog";
 import { interpretQuestion } from "@/lib/interpreter";
@@ -131,7 +131,9 @@ interface RunInput { clues: string[]; sceneA: ScenePoint; sceneB: ScenePoint | n
 function StepHead({ title, hint }: { title: string; hint: string }) {
   return (
     <div className="mb-5">
-      <h3 className="text-2xl font-bold text-foreground sm:text-3xl">{title}</h3>
+      <h3 className="flex items-start gap-2 text-2xl font-bold text-foreground sm:text-3xl">
+        <Pencil className="wiggle mt-1 h-6 w-6 shrink-0 text-[var(--coral)]" aria-hidden /><span className="write-on">{title}</span>
+      </h3>
       <p className="mt-1 text-[15px] font-semibold text-[var(--muted)]">{hint}</p>
     </div>
   );
@@ -188,6 +190,10 @@ export default function EarthSleuthsApp() {
   const [picking, setPicking] = useState(false);
   // The case file as it was before the tutorial started, so leaving the tutorial puts everything back.
   const beforeDemo = useRef<{ question: string; clues: string[]; twoScenes: boolean; sceneA: ScenePoint; sceneB: ScenePoint; startYear: number; endYear: number; step: 1 | 2 | 3; result: InvestigationResponse | null; scrollY: number } | null>(null);
+  // The case file starts as a closed folder and swings open when it scrolls into view.
+  const [cover, setCover] = useState<"none" | "closed" | "opening">("none");
+  // The magnifier sweeps across the case file when the evidence is examined.
+  const [sweep, setSweep] = useState(false);
   const restored = useRef(false);
   useScrollReveal([result, mural.length, lang]);
 
@@ -237,6 +243,22 @@ export default function EarthSleuthsApp() {
     return () => io.disconnect();
   }, [result]);
 
+  useEffect(() => {
+    const el = document.getElementById("q1");
+    if (!el || typeof IntersectionObserver === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (el.getBoundingClientRect().top < window.innerHeight * 0.55) return;
+    setCover("closed");
+    let t1 = 0, t2 = 0;
+    const io = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      io.disconnect();
+      t1 = window.setTimeout(() => setCover("opening"), 450);
+      t2 = window.setTimeout(() => setCover("none"), 1500);
+    }, { rootMargin: "0px 0px -45% 0px" });
+    io.observe(el);
+    return () => { io.disconnect(); clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
   const primary = useMemo(() => clueById(clues[0]) ?? FRONTEND_CLUES[0], [clues]);
   const latestStart = Math.max(...clues.map((id) => clueById(id)?.min_year ?? FIRST_YEAR), startYear);
   const nYears = endYear - latestStart + 1;
@@ -263,7 +285,9 @@ export default function EarthSleuthsApp() {
     };
     setLoading(true);
     setError(null);
-    setTimeout(() => scrollToId("veredito"), 60);
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setSweep(!calm);
+    setTimeout(() => { setSweep(false); scrollToId("veredito"); }, calm ? 60 : 850);
     try {
       const body = await analyzeInvestigation({
         data: {
@@ -424,7 +448,7 @@ export default function EarthSleuthsApp() {
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-clip">
-      <SiteHeader lang={lang} setLang={setLang} boardCount={mural.length} />
+      <SiteHeader lang={lang} setLang={setLang} boardCount={mural.length} tour={!!demo || picking} onStopTour={exitDemo} />
       {confetti && <Confetti burst={confetti} />}
 
       {/* HERO */}
@@ -520,7 +544,27 @@ export default function EarthSleuthsApp() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-16">
         {sectionTitle(t("Sua vez", "Your turn"), <>{t("Monte a ficha e peça o ", "Fill in the case file, get a ")}<span className="text-gradient">{t("veredito", "verdict")}</span></>, "var(--sun)")}
 
-        <section id="q1" data-reveal className={`pop scroll-mt-28 overflow-hidden rounded-[32px] ${demo ? "pointer-events-none relative z-[45]" : ""}`}>
+        <section id="q1" data-reveal className={`casefile pop relative scroll-mt-28 overflow-hidden rounded-[32px] ${demo ? "pointer-events-none z-[45]" : ""}`}>
+          {cover !== "none" && (
+            <div aria-hidden onClick={() => setCover("none")} className={`folder-cover dots absolute inset-0 z-20 flex cursor-pointer flex-col items-center px-6 pt-10 text-center text-[#3b2408] ${cover === "opening" ? "is-open" : ""}`}>
+              <Paperclip className="absolute left-6 top-4 h-14 w-14 -rotate-12 text-[#6b6480]" />
+              <p className="mt-9 font-mono text-xs font-bold uppercase tracking-[0.25em] sm:mt-0">EarthSleuth · {t("Agência de detetives do clima", "Climate detective agency")}</p>
+              <p className="mt-5 font-serif text-5xl font-bold leading-none sm:text-7xl">{t("Arquivo de caso", "Case file")}</p>
+              <p className="mt-6 -rotate-6 rounded-lg border-4 border-[#c8321f] px-4 py-1 font-mono text-xl font-bold uppercase tracking-[0.2em] text-[#c8321f] sm:text-2xl">{t("Caso aberto", "Open case")}</p>
+              <div className="mt-8 grid w-full max-w-md gap-3 text-left font-serif text-lg font-bold">
+                {[t("O quê?", "What?"), t("Onde?", "Where?"), t("Quando?", "When?")].map((q) => (
+                  <p key={q} className="flex items-end gap-3">{q}<span className="mb-1 flex-1 border-b-[3px] border-dashed border-[#3b2408]/50" /></p>
+                ))}
+              </div>
+            </div>
+          )}
+          {sweep && (
+            <div aria-hidden className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+              <span className="sweep absolute grid h-44 w-44 place-items-center rounded-full border-[10px] border-[var(--stroke)] bg-white/30 shadow-[6px_6px_0_0_var(--pop)] backdrop-blur-[1px] backdrop-brightness-125 backdrop-saturate-150">
+                <span className="absolute left-[88%] top-[88%] h-6 w-24 origin-left rotate-45 rounded-full border-[3px] border-[var(--stroke)] bg-[var(--tang)]" />
+              </span>
+            </div>
+          )}
           <div role="tablist" aria-label={t("Passos da investigação", "Investigation steps")} className="grid grid-cols-3 border-b-[2.5px] border-[var(--stroke)]">
             {([
               { n: 1, I: HelpCircle, c: "var(--grape)", h: t("O quê?", "What?"), v: clues.map((id) => friendlyOf(id)?.short[lang] ?? id).join(", ") },
@@ -541,9 +585,10 @@ export default function EarthSleuthsApp() {
               );
             })}
           </div>
-          <div className="p-5 sm:p-7">
+          <div aria-hidden className="spiral" />
+          <div className="p-5 [perspective:1800px] sm:p-7">
         {step === 1 && (
-          <div key="s1" className="reveal">
+          <div key="s1" className="page-turn">
           <StepHead title={t("O que você quer descobrir?", "What do you want to find out?")} hint={t("Toque em uma ou mais pistas. Cada uma é uma variável da NASA, testada separadamente.", "Tap one or more clues. Each is a NASA variable, tested on its own.")} />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {FRONTEND_CLUES.map((c) => {
@@ -588,7 +633,7 @@ export default function EarthSleuthsApp() {
         )}
 
         {step === 2 && (
-          <div key="s2" className="reveal">
+          <div key="s2" className="page-turn">
           <StepHead title={t("Onde vamos investigar?", "Where should we look?")} hint={t("Escolha um tipo de lugar ou toque no mapa.", "Pick a kind of place or tap the map.")} />
           <div className="grid gap-5 lg:grid-cols-[1fr_1.15fr]"><div>
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -648,7 +693,7 @@ export default function EarthSleuthsApp() {
         )}
 
         {step === 3 && (
-          <div key="s3" className="reveal">
+          <div key="s3" className="page-turn">
           <StepHead title={t("Quantos anos vamos olhar?", "How many years should we look at?")} hint={t("Uma tendência precisa de tempo. Com menos de 15 anos não dá para separar a mudança do ruído.", "A trend needs time. Under 15 years, change can't be told apart from noise.")} />
           <div className="mb-7 flex flex-wrap items-center gap-3">
             {PERIODS.map((p) => (
@@ -890,7 +935,7 @@ export default function EarthSleuthsApp() {
         </div>
       </footer>
 
-      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={picking ? "left" : SPOT[guideKey]} cheer={cheer} active={talking || loading || !!demo || picking} onSkip={demo || picking ? exitDemo : undefined} onNext={demo ? demoNext : undefined}
+      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={picking ? "left" : SPOT[guideKey]} cheer={cheer} active={talking || loading || !!demo || picking} tour={!!demo || picking} onNext={demo ? demoNext : undefined}
         nextLabel={demo ? (demo.stage === 3 ? t("Examinar as evidências!", "Examine the evidence!") : t("Continuar", "Continue")) : undefined} />
       {(demo || picking) && <div aria-hidden onClick={picking ? exitDemo : undefined} className="reveal fixed inset-0 z-[44] bg-[#0b0724]/55 backdrop-blur-[3px]" />}
       {evidence && <EvidenceModal run={evidence.run} scene={evidence.scene} lang={lang} onClose={() => setEvidence(null)} />}
