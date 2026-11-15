@@ -45,11 +45,11 @@ function loadMaps(): Promise<void> {
 }
 
 const LATITUDES = [
-  { lat: 66.56, name: "Círculo Polar Ártico" },
-  { lat: 23.44, name: "Trópico de Câncer" },
-  { lat: 0, name: "Equador" },
-  { lat: -23.44, name: "Trópico de Capricórnio" },
-  { lat: -66.56, name: "Círculo Polar Antártico" },
+  { lat: 66.56, name: "Círculo Polar Ártico", en: "Arctic Circle" },
+  { lat: 23.44, name: "Trópico de Câncer", en: "Tropic of Cancer" },
+  { lat: 0, name: "Equador", en: "Equator" },
+  { lat: -23.44, name: "Trópico de Capricórnio", en: "Tropic of Capricorn" },
+  { lat: -66.56, name: "Círculo Polar Antártico", en: "Antarctic Circle" },
 ];
 interface Props {
   sceneA: ScenePoint;
@@ -58,6 +58,7 @@ interface Props {
   latStep: number;
   lonStep: number;
   onSelectPoint: (target: "A" | "B", lat: number, lon: number) => void;
+  lang?: "pt" | "en";
 }
 
 export default function MapSelector(props: Props) {
@@ -104,7 +105,7 @@ export default function MapSelector(props: Props) {
 
   useEffect(() => {
     if (!map) return;
-    const { sceneA, sceneB, latStep, lonStep, activeTarget } = props;
+    const { sceneA, sceneB, latStep, lonStep, activeTarget, lang } = props;
     const focus = activeTarget === "B" && sceneB ? sceneB : sceneA;
     map.panTo({ lat: focus.latitude, lng: focus.longitude });
     const overlays: (google.maps.Marker | google.maps.Rectangle | google.maps.Polyline)[] = [];
@@ -113,7 +114,8 @@ export default function MapSelector(props: Props) {
     const secondary = styles.getPropertyValue("--orange").trim();
     const muted = styles.getPropertyValue("--muted").trim();
     const white = styles.getPropertyValue("--primary-foreground").trim();
-    for (const { lat, name } of LATITUDES) {
+    for (const { lat, name: namePt, en } of LATITUDES) {
+      const name = lang === "pt" ? namePt : en;
       overlays.push(new google.maps.Polyline({ map,
         path: [{ lat, lng: -179.99 }, { lat, lng: 0 }, { lat, lng: 179.99 }],
         strokeColor: lat === 0 ? primary : muted, strokeOpacity: 0.45, strokeWeight: 1,
@@ -132,21 +134,21 @@ export default function MapSelector(props: Props) {
         west: point.longitude - lonStep / 2, east: point.longitude + lonStep / 2,
       }, strokeColor: color, strokeWeight: 2, fillColor: color, fillOpacity: 0.18, clickable: false }));
       overlays.push(new google.maps.Marker({ map,
-        position: { lat: point.latitude, lng: point.longitude }, title: `Cena ${label}: ${point.region_name}`,
+        position: { lat: point.latitude, lng: point.longitude }, title: `${lang === "pt" ? "Cena" : "Scene"} ${label}: ${point.region_name}`,
         icon: { path: google.maps.SymbolPath.CIRCLE, scale: 13, fillColor: color, fillOpacity: 1, strokeColor: white, strokeWeight: 3 },
         label: { text: label, color: white, fontWeight: "700" }, clickable: false,
       }));
     }
     return () => overlays.forEach((overlay) => overlay.setMap(null));
-  }, [map, props.sceneA, props.sceneB, props.activeTarget, props.latStep, props.lonStep]);
+  }, [map, props.sceneA, props.sceneB, props.activeTarget, props.latStep, props.lonStep, props.lang]);
 
   return (
     <div className="relative h-[380px] w-full overflow-hidden rounded-lg border border-border bg-secondary">
       <div ref={container} className="h-full w-full" aria-label="Google Maps: investigation locations" />
       {!map && <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-muted-foreground" role="status">{error ?? "Carregando Google Maps…"}</div>}
       {map && <p className="pointer-events-none absolute left-3 right-16 top-14 rounded-md bg-background/95 px-3 py-1.5 text-xs text-foreground">
-        Cena <strong className={props.activeTarget === "A" ? "text-primary" : "text-scene-b"}>{props.activeTarget}</strong>
-        <span className="text-muted-foreground"> · célula do dado {props.latStep}° × {props.lonStep}°</span>
+        {props.lang === "pt" ? "Cena" : "Scene"} <strong className={props.activeTarget === "A" ? "text-primary" : "text-scene-b"}>{props.activeTarget}</strong>
+        <span className="text-muted-foreground"> · {props.lang === "pt" ? "célula do dado" : "data cell"} {props.latStep}° × {props.lonStep}°</span>
       </p>}
     </div>
   );

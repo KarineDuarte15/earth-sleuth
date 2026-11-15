@@ -384,7 +384,7 @@ export default function EarthSleuthsApp() {
             <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
               onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
           )}
-          <MapSelector sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
+          <MapSelector lang={lang} sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
             latStep={primary.lat_step} lonStep={primary.lon_step}
             onSelectPoint={(target, lat, lon) =>
               (target === "A" ? setSceneA : setSceneB)({ region_name: `Ponto ${lat}, ${lon}`, latitude: lat, longitude: lon })} />
