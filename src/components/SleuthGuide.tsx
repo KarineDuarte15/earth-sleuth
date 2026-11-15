@@ -122,19 +122,36 @@ function BunnyCanvas({ mood, facing, onFail }: { mood: GuideMood; facing: number
         mixer.addEventListener("finished", () => { if (moodRef.current === "jump") { current = undefined; play.current("idle"); } });
         play.current(moodRef.current);
 
+        // He looks at the pointer while it moves, and at the page content when it rests (or on touch screens).
+        const pointer = { x: 0, y: 0, at: -1e9 };
+        const onPointer = (e: PointerEvent) => { if (e.pointerType === "mouse") { pointer.x = e.clientX; pointer.y = e.clientY; pointer.at = performance.now(); } };
+        window.addEventListener("pointermove", onPointer, { passive: true });
+        const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+        const lookYaw = () => {
+          const r = el.getBoundingClientRect();
+          const cx = r.left + r.width / 2, cy = r.top + r.height * 0.3;
+          const vw = window.innerWidth;
+          if (performance.now() - pointer.at < 4000) return { yaw: clamp((pointer.x - cx) / 520, -1, 1) * 1.0, pitch: clamp((pointer.y - cy) / 900, -0.22, 0.22) };
+          // resting: turn towards the middle of the page; stay front-on when he is already near the middle
+          const off = (vw / 2 - cx) / (vw / 2);
+          return { yaw: Math.abs(off) < 0.25 ? -0.2 : clamp(off, -1, 1) * 0.7, pitch: 0 };
+        };
+
         const clock = new THREE.Clock();
         const loop = () => {
           frame = requestAnimationFrame(loop);
           if (document.hidden) return;
           // Turn towards the walking direction, then back to the visitor.
           // facing: 0 = towards the visitor, 1 / -1 = walking right / left, 2 = back turned (climbing the rope).
-          const want = facingRef.current === 0 ? -0.2 : facingRef.current === 2 ? Math.PI : facingRef.current * 1.35;
-          model.rotation.y += (want - model.rotation.y) * 0.14;
+          const look = facingRef.current === 0 ? lookYaw() : { yaw: 0, pitch: 0 };
+          const want = facingRef.current === 0 ? look.yaw : facingRef.current === 2 ? Math.PI : facingRef.current * 1.35;
+          model.rotation.y += (want - model.rotation.y) * (facingRef.current === 0 ? 0.08 : 0.14);
+          model.rotation.x += (look.pitch - model.rotation.x) * 0.08;
           mixer.update(Math.min(clock.getDelta(), 0.05));
           renderer.render(scene, camera);
         };
         loop();
-        cleanup = () => { ro.disconnect(); mixer.stopAllAction(); renderer.dispose(); };
+        cleanup = () => { ro.disconnect(); window.removeEventListener("pointermove", onPointer); mixer.stopAllAction(); renderer.dispose(); };
       } catch {
         if (!disposed) onFail();
       }
