@@ -127,7 +127,8 @@ function BunnyCanvas({ mood, facing, onFail }: { mood: GuideMood; facing: number
           frame = requestAnimationFrame(loop);
           if (document.hidden) return;
           // Turn towards the walking direction, then back to the visitor.
-          const want = facingRef.current === 0 ? -0.2 : facingRef.current * 1.35;
+          // facing: 0 = towards the visitor, 1 / -1 = walking right / left, 2 = back turned (climbing the rope).
+          const want = facingRef.current === 0 ? -0.2 : facingRef.current === 2 ? Math.PI : facingRef.current * 1.35;
           model.rotation.y += (want - model.rotation.y) * 0.14;
           mixer.update(Math.min(clock.getDelta(), 0.05));
           renderer.render(scene, camera);
@@ -204,8 +205,8 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
       setFacing(adx > 24 ? 1 : adx < -24 ? -1 : 0);
       setWalking(true);
       setBox(under);
-      const t1 = setTimeout(() => { setClimbing(true); setFacing(0); setMoveMs(CLIMB_MS); setBox(targetBox("hero")); }, APPROACH_MS);
-      const t2 = setTimeout(() => { setWalking(false); setClimbing(false); setBox(targetBox("hero")); }, APPROACH_MS + CLIMB_MS);
+      const t1 = setTimeout(() => { setClimbing(true); setFacing(2); setMoveMs(CLIMB_MS); setBox(targetBox("hero")); }, APPROACH_MS);
+      const t2 = setTimeout(() => { setWalking(false); setClimbing(false); setFacing(0); setBox(targetBox("hero")); }, APPROACH_MS + CLIMB_MS);
       return () => { clearTimeout(t1); clearTimeout(t2); setWalking(false); setClimbing(false); setFacing(0); };
     }
     setClimbing(false);
