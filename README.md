@@ -225,6 +225,11 @@ Os dados são do **NASA Langley Research Center (LaRC) POWER Project**, financia
 
 Projeto independente, sem endosso da NASA.
 
+Recursos de terceiros na interface:
+
+- **Globo 3D:** contornos dos países do [Natural Earth](https://www.naturalearthdata.com/) 1:50m (domínio público), via [world-atlas](https://github.com/topojson/world-atlas), desenhados com [three.js](https://threejs.org/).
+- **Personagem 3D:** [Bunny Detective](https://sketchfab.com/3d-models/bunny-detective-b2ab08f1f5d04d9182400735d6471368), por bird (birdii), CC BY 4.0.
+
 Desenvolvido para transformar curiosidade ambiental em investigação pública, verificável e visual.
 
 <div align="center">

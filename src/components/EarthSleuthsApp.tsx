@@ -34,6 +34,19 @@ function MapSelector(props: React.ComponentProps<typeof MapSelectorLazy>) {
   );
 }
 
+const GlobeLazy = lazy(() => import("@/components/GlobeSelector"));
+const globeFallback = <div className="space flex h-[380px] items-center justify-center font-serif text-lg font-bold text-white sm:h-[540px]">…</div>;
+function GlobeSelector(props: React.ComponentProps<typeof GlobeLazy>) {
+  return (
+    <ClientOnly fallback={globeFallback}>
+      <Suspense fallback={globeFallback}><GlobeLazy {...props} /></Suspense>
+    </ClientOnly>
+  );
+}
+
+// Ready-made places shown next to the globe: one per kind of landscape.
+const QUICK_PLACES = ["Quixeramobim", "Manaus", "Pelotas"].map((n) => REGION_SHORTCUTS.find((r) => r.region_name.includes(n))!);
+
 const FIRST_YEAR = 1981;
 const LAST_YEAR = 2025;
 const MIN_YEARS = 15;
@@ -94,7 +107,7 @@ const SECTION_LINE: Record<SectionId | "q2" | "q3", DemoLine> = {
   topo: { pt: "Oi! Eu sou o Sr. Coelho, um detetive de dados. Vamos descobrir se o clima está mudando mesmo em algum lugar?", en: "Hi! I'm Mr. Bunny, a data detective. Shall we find out if the climate is really changing somewhere?" },
   casos: { pt: "Comece aqui! Escolha um caso e aperte Assistir. Eu resolvo na sua frente e explico cada passo.", en: "Start here! Pick a case and press Watch. I'll solve it in front of you and explain every step." },
   q1: { pt: "Passo 1: qual é a sua pergunta? Cada cartão é uma variável climática da NASA, explicada em palavras simples.", en: "Step 1: what's your question? Each card is a NASA climate variable, in plain words." },
-  q2: { pt: "Passo 2: onde investigar? Toque num lugar ou no mapa. Dica: compare dois lugares, a mesma pista pode subir num e descer no outro!", en: "Step 2: where should we look? Tap a place or the map. Tip: compare two places, the same clue can rise in one and fall in the other!" },
+  q2: { pt: "Passo 2: onde investigar? Gire o planeta e crave o alfinete. Dica: compare dois lugares, a mesma pista pode subir num e descer no outro!", en: "Step 2: where should we look? Spin the planet and drop the pin. Tip: compare two places, the same clue can rise in one and fall in the other!" },
   q3: { pt: "Passo 3: quantos anos? Preciso de pelo menos 15 para dar um veredito. Mais anos, evidência mais forte.", en: "Step 3: how many years? I need at least 15 to give a verdict. More years, stronger evidence." },
   veredito: { pt: "O veredito aparece aqui depois que você apertar Examinar as evidências.", en: "Your verdict shows up here once you press Examine the evidence." },
   caderno: { pt: "Meu caderno de detetive: cada palavra difícil explicada em uma linha.", en: "My detective notebook: every tricky word explained in one line." },
@@ -187,8 +200,10 @@ export default function EarthSleuthsApp() {
   const [picking, setPicking] = useState(false);
   // The case file as it was before the tutorial started, so leaving the tutorial puts everything back.
   const beforeDemo = useRef<{ question: string; clues: string[]; twoScenes: boolean; sceneA: ScenePoint; sceneB: ScenePoint; startYear: number; endYear: number; step: 1 | 2 | 3; result: InvestigationResponse | null; scrollY: number } | null>(null);
-  // The case file starts as a closed folder and swings open when it scrolls into view.
-  const [cover, setCover] = useState<"none" | "closed" | "opening">("none");
+  // The first time the case file comes into view, a short scene plays: the screen irises shut,
+  // a notebook opens and the camera dives into its page.
+  const [intro, setIntro] = useState(false);
+  const [globeFailed, setGlobeFailed] = useState(false);
   // The magnifier sweeps across the case file when the evidence is examined.
   const [sweep, setSweep] = useState(false);
   const restored = useRef(false);
@@ -243,13 +258,13 @@ export default function EarthSleuthsApp() {
     const el = document.getElementById("q1");
     if (!el || typeof IntersectionObserver === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if (el.getBoundingClientRect().top < window.innerHeight * 0.55) return;
-    setCover("closed");
     let t1 = 0, t2 = 0;
     const io = new IntersectionObserver((entries) => {
       if (!entries.some((e) => e.isIntersecting)) return;
       io.disconnect();
-      t1 = window.setTimeout(() => setCover("opening"), 450);
-      t2 = window.setTimeout(() => setCover("none"), 1500);
+      setIntro(true);
+      t1 = window.setTimeout(() => el.scrollIntoView({ behavior: "instant", block: "start" }), 700);
+      t2 = window.setTimeout(() => setIntro(false), 3000);
     }, { rootMargin: "0px 0px -45% 0px" });
     io.observe(el);
     return () => { io.disconnect(); clearTimeout(t1); clearTimeout(t2); };
@@ -546,19 +561,6 @@ export default function EarthSleuthsApp() {
         </div>
 
         <section id="q1" className={`casefile pop relative scroll-mt-28 overflow-hidden rounded-[32px] ${demo ? "pointer-events-none z-[45]" : ""}`}>
-          {cover !== "none" && (
-            <div aria-hidden onClick={() => setCover("none")} className={`folder-cover dots absolute inset-0 z-20 flex cursor-pointer flex-col items-center px-6 pt-10 text-center text-[#3b2408] ${cover === "opening" ? "is-open" : ""}`}>
-              <Paperclip className="absolute left-6 top-4 h-14 w-14 -rotate-12 text-[#6b6480]" />
-              <p className="mt-9 font-mono text-xs font-bold uppercase tracking-[0.25em] sm:mt-0">EarthSleuth · {t("Agência de detetives do clima", "Climate detective agency")}</p>
-              <p className="mt-5 font-serif text-5xl font-bold leading-none sm:text-7xl">{t("Arquivo de caso", "Case file")}</p>
-              <p className="mt-6 -rotate-6 rounded-lg border-4 border-[#c8321f] px-4 py-1 font-mono text-xl font-bold uppercase tracking-[0.2em] text-[#c8321f] sm:text-2xl">{t("Caso aberto", "Open case")}</p>
-              <div className="mt-8 grid w-full max-w-md gap-3 text-left font-serif text-lg font-bold">
-                {[t("O quê?", "What?"), t("Onde?", "Where?"), t("Quando?", "When?")].map((q) => (
-                  <p key={q} className="flex items-end gap-3">{q}<span className="mb-1 flex-1 border-b-[3px] border-dashed border-[#3b2408]/50" /></p>
-                ))}
-              </div>
-            </div>
-          )}
           {sweep && (
             <div aria-hidden className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
               <span className="sweep absolute grid h-44 w-44 place-items-center rounded-full border-[10px] border-[var(--stroke)] bg-white/30 shadow-[6px_6px_0_0_var(--pop)] backdrop-blur-[1px] backdrop-brightness-125 backdrop-saturate-150">
@@ -568,28 +570,26 @@ export default function EarthSleuthsApp() {
           )}
           <div role="tablist" aria-label={t("Passos da investigação", "Investigation steps")} className="grid grid-cols-3 border-b-[2.5px] border-[var(--stroke)]">
             {([
-              { n: 1, I: HelpCircle, c: "var(--grape)", h: t("O quê?", "What?"), v: clues.map((id) => friendlyOf(id)?.short[lang] ?? id).join(", ") },
-              { n: 2, I: MapPin, c: "var(--mint)", h: t("Onde?", "Where?"), v: shortName(sceneA.region_name) + (twoScenes ? ` × ${shortName(sceneB.region_name)}` : "") },
-              { n: 3, I: CalendarRange, c: "var(--tang)", h: t("Quando?", "When?"), v: `${startYear} ${t("a", "to")} ${endYear}` },
-            ] as const).map(({ n, I, c, h, v }) => {
+              { n: 1, I: HelpCircle, c: "var(--grape)", h: t("O quê?", "What?") },
+              { n: 2, I: MapPin, c: "var(--mint)", h: t("Onde?", "Where?") },
+              { n: 3, I: CalendarRange, c: "var(--tang)", h: t("Quando?", "When?") },
+            ] as const).map(({ n, I, c, h }) => {
               const on = step === n;
               return (
                 <button key={n} type="button" role="tab" aria-selected={on} onClick={() => setStep(n)}
                   style={{ backgroundColor: on ? c : undefined }}
                   className={`group relative flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center transition sm:flex-row sm:gap-3 sm:px-5 sm:py-4 sm:text-left ${n > 1 ? "border-l-[2.5px] border-[var(--stroke)]" : ""} ${on ? "dots text-[var(--on-color)]" : "bg-[var(--panel-2)] text-foreground hover:bg-[var(--panel)]"}`}>
                   <span className={`outline-ink grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[var(--panel)] font-serif text-xl font-bold text-foreground sm:h-12 sm:w-12 ${on ? "-rotate-6 shadow-[3px_3px_0_0_var(--pop)]" : ""}`}>{n}</span>
-                  <span className="min-w-0 max-w-full">
-                    <span className="flex items-center justify-center gap-1.5 font-serif text-lg font-bold leading-tight sm:justify-start sm:text-xl"><I className="group-wiggle hidden h-5 w-5 sm:block" aria-hidden />{h}</span>
-                    <span className="block truncate text-xs font-bold opacity-75 sm:text-sm">{v}</span>
-                  </span>
+                  <span className="flex min-w-0 items-center justify-center gap-1.5 font-serif text-lg font-bold leading-tight sm:justify-start sm:text-2xl"><I className="group-wiggle hidden h-6 w-6 sm:block" aria-hidden />{h}</span>
                 </button>
               );
             })}
           </div>
           <div aria-hidden className="spiral" />
-          <div className="p-5 [perspective:1800px] sm:p-7">
+          <div className="relative p-5 [perspective:1600px] sm:p-7">
+          <div key={`flip${step}`} aria-hidden className="page-flip ruled pointer-events-none absolute inset-0 z-10 bg-[var(--panel)]" />
         {step === 1 && (
-          <div key="s1" className="page-turn">
+          <div key="s1" className="page-in">
           <StepHead title={t("O que você quer descobrir?", "What do you want to find out?")} hint={t("Toque em uma ou mais pistas. Cada uma é uma variável da NASA, testada separadamente.", "Tap one or more clues. Each is a NASA variable, tested on its own.")} />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {FRONTEND_CLUES.map((c) => {
@@ -618,40 +618,61 @@ export default function EarthSleuthsApp() {
         )}
 
         {step === 2 && (
-          <div key="s2" className="page-turn">
-          <StepHead title={t("Onde vamos investigar?", "Where should we look?")} hint={t("Escolha um tipo de lugar ou toque no mapa.", "Pick a kind of place or tap the map.")} />
-          <div className="grid gap-5 lg:grid-cols-[1fr_1.15fr]"><div>
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {REGION_SHORTCUTS.map((r, i) => {
+          <div key="s2" className="page-in">
+          <StepHead title={t("Onde vamos investigar?", "Where should we look?")} hint={t("Gire o planeta e crave o alfinete, ou comece por um lugar pronto.", "Spin the planet and drop the pin, or start from a ready-made place.")} />
+          <div className="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.9fr)]">
+            {QUICK_PLACES.map((r, i) => {
               const cur = mapTarget === "B" && twoScenes ? sceneB : sceneA;
               const on = cur.region_name === r.region_name;
+              const alsoB = twoScenes && sceneB.region_name === r.region_name;
               const k = kindOf(r.region_name);
               const I = k?.Icon ?? MapPin;
-              const col = ["var(--sun)", "var(--aqua)", "var(--grape)", "var(--mint)", "var(--coral)", "var(--tang)"][i % 6];
+              const col = ["var(--sun)", "var(--mint)", "var(--aqua)"][i % 3];
               return (
                 <button key={r.region_name} type="button" aria-pressed={on} onClick={() => (mapTarget === "B" && twoScenes ? setSceneB : setSceneA)(r)}
                   style={on ? { background: `color-mix(in oklab, ${col} 35%, var(--panel))` } : undefined}
-                  className={`group flex flex-col items-center gap-1.5 rounded-3xl p-3 text-center ${on || (demo && twoScenes && sceneB.region_name === r.region_name) ? "pop" : "outline-ink lift bg-[var(--panel)]"} ${demo ? (on || (twoScenes && sceneB.region_name === r.region_name) ? "spot" : "dimmed") : ""}`}>
-                  <span className="outline-ink group-wiggle grid h-11 w-11 place-items-center rounded-full text-[var(--on-color)]" style={{ background: col }}><I className="h-5 w-5" aria-hidden /></span>
-                  <span className="font-serif text-[15px] font-bold leading-tight text-foreground">{shortName(r.region_name)}</span>
-                  {k && <span className="text-xs font-semibold text-[var(--muted)]">{t(k.pt, k.en)}</span>}
+                  className={`group flex items-center gap-3 rounded-3xl p-3 text-left ${on || (demo && alsoB) ? "pop" : "outline-ink lift bg-[var(--panel)]"} ${demo ? (on || alsoB ? "spot" : "dimmed") : ""}`}>
+                  <span className="outline-ink group-wiggle grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--on-color)]" style={{ background: col }}><I className="h-5 w-5" aria-hidden /></span>
+                  <span className="min-w-0">
+                    <span className="block font-serif text-[15px] font-bold leading-tight text-foreground">{shortName(r.region_name)}</span>
+                    {k && <span className="block text-xs font-semibold text-[var(--muted)]">{t(k.pt, k.en)}</span>}
+                  </span>
                 </button>
               );
             })}
+            <button type="button" onClick={() => { setTwoScenes((v) => !v); setMapTarget(twoScenes ? "A" : "B"); }} aria-pressed={twoScenes}
+              style={twoScenes ? { background: "color-mix(in oklab, var(--tang) 30%, var(--panel))" } : undefined}
+              className={`flex items-center gap-3 rounded-3xl p-3 text-left sm:col-span-3 lg:col-span-1 ${twoScenes ? "pop" : "outline-ink lift bg-[var(--panel)]"} ${demo ? (twoScenes ? "spot" : "dimmed") : ""}`}>
+              <span className="outline-ink grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--tang)] text-[var(--on-color)]"><SplitSquareHorizontal className="h-5 w-5" aria-hidden /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-serif text-[15px] font-bold leading-tight text-foreground">{twoScenes ? t("Comparando dois lugares!", "Comparing two places!") : t("Comparar com outro lugar", "Compare with another place")}</span>
+                <span className="block text-xs font-semibold text-[var(--muted)]">{t("A mesma pista pode subir num e descer no outro.", "The same clue can rise in one and fall in the other.")}</span>
+              </span>
+              <span className={`outline-ink h-8 w-14 shrink-0 rounded-full p-0.5 transition ${twoScenes ? "bg-[var(--mint)]" : "bg-[var(--panel-2)]"}`} aria-hidden>
+                <span className={`outline-ink block h-6 w-6 rounded-full bg-[var(--panel)] transition ${twoScenes ? "translate-x-6" : ""}`} />
+              </span>
+            </button>
           </div>
-          <button type="button" onClick={() => { setTwoScenes((v) => !v); setMapTarget(twoScenes ? "A" : "B"); }} aria-pressed={twoScenes}
-            style={twoScenes ? { background: "color-mix(in oklab, var(--tang) 30%, var(--panel))" } : undefined}
-            className={`mb-5 flex w-full items-center gap-3 rounded-3xl p-4 text-left ${twoScenes ? "pop" : "outline-ink lift bg-[var(--panel)]"} ${demo ? (twoScenes ? "spot" : "dimmed") : ""}`}>
-            <span className="outline-ink grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--tang)] text-[var(--on-color)]"><SplitSquareHorizontal className="h-6 w-6" aria-hidden /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-serif text-lg font-bold text-foreground">{twoScenes ? t("Comparando dois lugares!", "Comparing two places!") : t("Comparar com outro lugar", "Compare with another place")}</span>
-              <span className="block text-sm text-[var(--muted)]">{t("A mesma pista pode subir num lugar e descer no outro, mesmo com a mesma causa.", "The same clue can rise in one place and fall in another, even with the same cause.")}</span>
-            </span>
-            <span className={`outline-ink h-8 w-14 shrink-0 rounded-full p-0.5 transition ${twoScenes ? "bg-[var(--mint)]" : "bg-[var(--panel-2)]"}`} aria-hidden>
-              <span className={`outline-ink block h-6 w-6 rounded-full bg-[var(--panel)] transition ${twoScenes ? "translate-x-6" : ""}`} />
-            </span>
-          </button>
-          <div className={`mb-5 grid gap-3 ${twoScenes ? "sm:grid-cols-2" : ""}`}>
+          {ACCOUNT_FEATURES_ENABLED && (
+            <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
+              onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
+          )}
+          <div className="map-unfold outline-ink relative overflow-hidden rounded-3xl shadow-[6px_6px_0_0_var(--pop)]" onPointerEnter={() => setPeering(true)} onPointerLeave={() => setPeering(false)}>
+            {globeFailed ? (
+              <MapSelector lang={lang} sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
+                latStep={primary.lat_step} lonStep={primary.lon_step}
+                onSelectPoint={(target, lat, lon) =>
+                  (target === "A" ? setSceneA : setSceneB)({ region_name: t("Ponto no mapa", "Map point"), latitude: lat, longitude: lon })} />
+            ) : (
+              <GlobeSelector lang={lang} sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
+                latStep={primary.lat_step} lonStep={primary.lon_step} onFail={() => setGlobeFailed(true)}
+                onSelectPoint={(target, lat, lon, country) => {
+                  setCheer((c) => c + 1);
+                  (target === "A" ? setSceneA : setSceneB)({ region_name: country ? `${t("Ponto em", "Point in")} ${country}` : t("Ponto no oceano", "Point in the ocean"), latitude: lat, longitude: lon });
+                }} />
+            )}
+          </div>
+          <div className={`mt-4 grid gap-3 ${twoScenes ? "sm:grid-cols-2" : ""}`}>
             {([["A", sceneA, setSceneA, "var(--brand)"], ...(twoScenes ? [["B", sceneB, setSceneB, "var(--orange)"]] : [])] as [string, ScenePoint, (s: ScenePoint) => void, string][]).map(([k, s, set, col]) => (
               <div key={k} onClick={() => setMapTarget(k as "A" | "B")}
                 className="flex cursor-pointer flex-wrap items-center gap-2 rounded-2xl border-[2.5px] bg-[var(--panel)] p-3 text-sm font-semibold"
@@ -662,23 +683,11 @@ export default function EarthSleuthsApp() {
               </div>
             ))}
           </div>
-          </div><div>
-          {ACCOUNT_FEATURES_ENABLED && (
-            <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
-              onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
-          )}
-          <div className="map-unfold outline-ink relative overflow-hidden rounded-3xl shadow-[6px_6px_0_0_var(--pop)]" onPointerEnter={() => setPeering(true)} onPointerLeave={() => setPeering(false)}>
-            <MapSelector lang={lang} sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
-              latStep={primary.lat_step} lonStep={primary.lon_step}
-              onSelectPoint={(target, lat, lon) =>
-                (target === "A" ? setSceneA : setSceneB)({ region_name: t("Ponto no mapa", "Map point"), latitude: lat, longitude: lon })} />
-          </div>
-          </div></div>
           </div>
         )}
 
         {step === 3 && (
-          <div key="s3" className="page-turn">
+          <div key="s3" className="page-in">
           <StepHead title={t("Quantos anos vamos olhar?", "How many years should we look at?")} hint={t("Uma tendência precisa de tempo. Com menos de 15 anos não dá para separar a mudança do ruído.", "A trend needs time. Under 15 years, change can't be told apart from noise.")} />
           <div className="mb-7 flex flex-wrap items-center gap-3">
             {PERIODS.map((p) => (
@@ -904,6 +913,28 @@ export default function EarthSleuthsApp() {
       <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={picking ? "left" : SPOT[guideKey]} cheer={cheer} active={talking || loading || !!demo || picking} tour={!!demo || picking} onNext={demo ? demoNext : undefined}
         nextLabel={demo ? (demo.stage === 3 ? t("Examinar as evidências!", "Examine the evidence!") : t("Continuar", "Continue")) : undefined} />
       {(demo || picking) && <div aria-hidden onClick={picking ? exitDemo : undefined} className="reveal fixed inset-0 z-[44] bg-[#0b0724]/55 backdrop-blur-[3px]" />}
+      {intro && (
+        <div aria-hidden onClick={() => setIntro(false)} className="intro fixed inset-0 z-[80] cursor-pointer overflow-hidden">
+          <div className="intro-iris" />
+          <div className="intro-stage space absolute inset-0 grid place-items-center [perspective:1700px]">
+            <div className="intro-book relative aspect-[3/4] w-[min(64vw,400px)]">
+              <div className="ruled absolute inset-0 flex flex-col gap-5 rounded-r-2xl rounded-l-md border-[3px] border-[#1b1440] bg-[#fffaf0] p-7 text-[#1b1440]">
+                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.25em]">{t("Caso nº", "Case no.")} 001</p>
+                {[t("O quê?", "What?"), t("Onde?", "Where?"), t("Quando?", "When?")].map((q, i) => (
+                  <p key={q} className="intro-line font-serif text-3xl font-bold" style={{ animationDelay: `${1.45 + i * 0.16}s` }}>{q}</p>
+                ))}
+                <Search className="mt-auto h-14 w-14 self-end text-[#ff6b98]" />
+              </div>
+              <div className="intro-cover dots absolute inset-0 flex flex-col items-center justify-center gap-5 rounded-r-2xl rounded-l-md border-[3px] border-[#1b1440] px-5 text-center text-[#3b2408]">
+                <Paperclip className="absolute -top-5 left-8 h-14 w-14 -rotate-12 text-[#6b6480]" />
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em]">EarthSleuth</p>
+                <p className="font-serif text-4xl font-bold leading-none sm:text-5xl">{t("Arquivo de caso", "Case file")}</p>
+                <p className="-rotate-6 rounded-lg border-4 border-[#c8321f] px-3 py-1 font-mono text-lg font-bold uppercase tracking-[0.2em] text-[#c8321f]">{t("Caso aberto", "Open case")}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {evidence && <EvidenceModal run={evidence.run} scene={evidence.scene} lang={lang} onClose={() => setEvidence(null)} />}
     </div>
   );
