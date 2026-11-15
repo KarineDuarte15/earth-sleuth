@@ -5,3 +5,5 @@ __pycache__/
 .vercel/
 *.pyc
 next-env.d.ts
+.env*
+tsconfig.tsbuildinfo
