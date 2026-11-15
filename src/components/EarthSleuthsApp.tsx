@@ -8,10 +8,10 @@ import { ClientOnly, useNavigate } from "@tanstack/react-router";
 import { analyzeInvestigation } from "@/lib/analyze.functions";
 import {
   Thermometer, Moon, Sun, CloudRain, Sprout, Leaf, Search, SplitSquareHorizontal, Share2, Check, AlertCircle,
-  MapPin, ScanSearch, ArrowRight, ArrowDown, Sparkles, Database, Sigma, Play, Trees, Building2, Waves, Droplets, Wind,
-  BookOpen, HelpCircle, CalendarRange, Pin, Pencil, Paperclip, Fingerprint, Footprints, Compass, Star, Radio, Tv, Monitor, Smartphone, Rocket, type LucideIcon,
+  MapPin, ScanSearch, ArrowRight, ArrowDown, Sparkles, Database, Sigma, Play, Trees,
+  BookOpen, HelpCircle, CalendarRange, Pin, Pencil, Paperclip, Fingerprint, Footprints, Compass, Star, Radio, Tv, Monitor, Smartphone, Rocket, Snowflake, type LucideIcon,
 } from "lucide-react";
-import { FRONTEND_CLUES, PRESET_CASES, REGION_SHORTCUTS, PELOTAS, clueById, type PresetCase } from "@/lib/catalog";
+import { FRONTEND_CLUES, PRESET_CASES, PELOTAS, clueById, type PresetCase } from "@/lib/catalog";
 import { friendlyOf, plainComparison, plainVerdict } from "@/lib/friendly";
 import type { ClueRun, InvestigationResponse, Lang, SceneAnalysis, ScenePoint } from "@/types/sleuth";
 import EvidenceModal from "@/components/EvidenceModal";
@@ -45,8 +45,13 @@ function GlobeSelector(props: React.ComponentProps<typeof GlobeLazy>) {
   );
 }
 
-// Ready-made places shown next to the globe: one per kind of landscape.
-const QUICK_PLACES = ["Quixeramobim", "Manaus", "Pelotas"].map((n) => REGION_SHORTCUTS.find((r) => r.region_name.includes(n))!);
+// Starting points next to the globe: kinds of landscape around the world, as the challenge suggests,
+// not cities. Each one is just a grid square inside that landscape.
+const QUICK_PLACES: { Icon: LucideIcon; col: string; pt: string; en: string; wherePt: string; whereEn: string; latitude: number; longitude: number }[] = [
+  { Icon: Sun, col: "var(--sun)", pt: "Deserto", en: "Desert", wherePt: "Saara, África", whereEn: "Sahara, Africa", latitude: 23.5, longitude: 12.5 },
+  { Icon: Trees, col: "var(--mint)", pt: "Floresta tropical", en: "Rain forest", wherePt: "Amazônia, América do Sul", whereEn: "Amazon, South America", latitude: -3.5, longitude: -62.5 },
+  { Icon: Snowflake, col: "var(--aqua)", pt: "Gelo polar", en: "Polar ice", wherePt: "Groenlândia", whereEn: "Greenland", latitude: 72, longitude: -40 },
+];
 
 const FIRST_YEAR = 1981;
 const LAST_YEAR = 2025;
@@ -60,16 +65,6 @@ const CLUE_COLOR: Record<string, string> = {
   T2M: "var(--coral)", T2M_MIN: "var(--grape)", T2M_MAX: "var(--tang)", PRECTOTCORR: "var(--aqua)", GWETROOT: "var(--mint)", EVPTRNS: "var(--sun)",
 };
 
-// Each shortcut stands for a kind of landscape, as the challenge suggests (desert, rain forest, city...).
-const PLACE_KIND: { match: string; Icon: LucideIcon; pt: string; en: string }[] = [
-  { match: "Quixeramobim", Icon: Sun, pt: "Semiárido", en: "Semi-arid" },
-  { match: "Fortaleza", Icon: Building2, pt: "Cidade litorânea", en: "Coastal city" },
-  { match: "Petrolina", Icon: Waves, pt: "Vale de rio", en: "River valley" },
-  { match: "Manaus", Icon: Trees, pt: "Floresta tropical", en: "Rain forest" },
-  { match: "Foz", Icon: Droplets, pt: "Subtropical úmido", en: "Humid subtropical" },
-  { match: "Pelotas", Icon: Wind, pt: "Litoral do Sul", en: "Southern coast" },
-];
-const kindOf = (name: string) => PLACE_KIND.find((k) => name.includes(k.match));
 const shortName = (name: string) => name.split("/")[0].trim();
 
 // What everyday technology looked like in each stretch of the timeline: the old-to-new feel of the period step.
@@ -628,23 +623,20 @@ export default function EarthSleuthsApp() {
 
         {step === 2 && (
           <div key="s2" className="page-in">
-          <StepHead title={t("Onde vamos investigar?", "Where should we look?")} hint={t("Gire o planeta e crave o alfinete, ou comece por um lugar pronto.", "Spin the planet and drop the pin, or start from a ready-made place.")} />
+          <StepHead title={t("Onde vamos investigar?", "Where should we look?")} hint={t("Gire o planeta e crave o alfinete em qualquer lugar do mundo, ou comece por uma paisagem.", "Spin the planet and drop the pin anywhere in the world, or start from a landscape.")} />
           <div className="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.9fr)]">
-            {QUICK_PLACES.map((r, i) => {
-              const cur = mapTarget === "B" && twoScenes ? sceneB : sceneA;
-              const on = cur.region_name === r.region_name;
-              const alsoB = twoScenes && sceneB.region_name === r.region_name;
-              const k = kindOf(r.region_name);
-              const I = k?.Icon ?? MapPin;
-              const col = ["var(--sun)", "var(--mint)", "var(--aqua)"][i % 3];
+            {QUICK_PLACES.map((r) => {
+              const same = (p: ScenePoint) => p.latitude === r.latitude && p.longitude === r.longitude;
+              const on = same(mapTarget === "B" && twoScenes ? sceneB : sceneA);
+              const point = { region_name: `${t(r.pt, r.en)} · ${t(r.wherePt, r.whereEn)}`, latitude: r.latitude, longitude: r.longitude };
               return (
-                <button key={r.region_name} type="button" aria-pressed={on} onClick={() => (mapTarget === "B" && twoScenes ? setSceneB : setSceneA)(r)}
-                  style={on ? { background: `color-mix(in oklab, ${col} 35%, var(--panel))` } : undefined}
-                  className={`group flex items-center gap-3 rounded-3xl p-3 text-left ${on || (demo && alsoB) ? "pop" : "outline-ink lift bg-[var(--panel)]"} ${demo ? (on || alsoB ? "spot" : "dimmed") : ""}`}>
-                  <span className="outline-ink group-wiggle grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--on-color)]" style={{ background: col }}><I className="h-5 w-5" aria-hidden /></span>
+                <button key={r.en} type="button" aria-pressed={on} onClick={() => (mapTarget === "B" && twoScenes ? setSceneB : setSceneA)(point)}
+                  style={on ? { background: `color-mix(in oklab, ${r.col} 35%, var(--panel))` } : undefined}
+                  className={`group flex items-center gap-3 rounded-3xl p-3 text-left ${on ? "pop" : "outline-ink lift bg-[var(--panel)]"} ${demo ? "dimmed" : ""}`}>
+                  <span className="outline-ink group-wiggle grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--on-color)]" style={{ background: r.col }}><r.Icon className="h-5 w-5" aria-hidden /></span>
                   <span className="min-w-0">
-                    <span className="block font-serif text-[15px] font-bold leading-tight text-foreground">{shortName(r.region_name)}</span>
-                    {k && <span className="block text-xs font-semibold text-[var(--muted)]">{t(k.pt, k.en)}</span>}
+                    <span className="block font-serif text-[15px] font-bold leading-tight text-foreground">{t(r.pt, r.en)}</span>
+                    <span className="block text-xs font-semibold text-[var(--muted)]">{t(r.wherePt, r.whereEn)}</span>
                   </span>
                 </button>
               );
@@ -666,7 +658,7 @@ export default function EarthSleuthsApp() {
             <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
               onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
           )}
-          <div className="map-unfold outline-ink relative overflow-hidden rounded-3xl shadow-[6px_6px_0_0_var(--pop)]" onPointerEnter={() => setPeering(true)} onPointerLeave={() => setPeering(false)}>
+          <div className={`map-unfold outline-ink relative overflow-hidden rounded-3xl shadow-[6px_6px_0_0_var(--pop)] ${demo ? "spot-soft" : ""}`} onPointerEnter={() => setPeering(true)} onPointerLeave={() => setPeering(false)}>
             {globeFailed ? (
               <MapSelector lang={lang} sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
                 latStep={primary.lat_step} lonStep={primary.lon_step}
