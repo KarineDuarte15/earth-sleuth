@@ -34,6 +34,13 @@ Você escolhe uma pergunta, aponta uma região no mapa e seleciona as pistas que
 > Não é uma máquina de confirmar suspeitas.  
 > É uma ferramenta para descobrir o que os dados permitem afirmar.
 
+## 🎞️ Pitch decks
+
+Apresentação do projeto disponível nos dois idiomas:
+
+- 🇬🇧 [Earth Sleuths — Pitch Deck (EN)](./docs/pitch-deck/Earth-Sleuth-Pitch-Deck-EN.pdf)
+- 🇧🇷 [Earth Sleuths — Pitch Deck (PT)](./docs/pitch-deck/Earth-Sleuth-Pitch-Deck-PT.pdf)
+
 ## ✨ O que você pode fazer
 
 | Recurso | O que acontece |
