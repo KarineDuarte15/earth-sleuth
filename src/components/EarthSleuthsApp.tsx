@@ -901,7 +901,7 @@ export default function EarthSleuthsApp() {
               <span className="outline-ink -rotate-2 rounded-full bg-[var(--sun)] px-3 py-1 font-serif text-xs font-bold uppercase tracking-wider text-[var(--on-color)]">{t("Sr. Coelho", "Mr. Bunny")}</span>
               <span className="outline-ink flex overflow-hidden rounded-full text-xs font-extrabold">
                 {(["pt", "en"] as const).map((code) => (
-                  <button key={code} type="button" aria-pressed={lang === code} onClick={() => setLang(code)} className={`px-3 py-1.5 uppercase ${lang === code ? "bg-[var(--coral)] text-[var(--on-color)]" : "bg-[var(--panel)] text-foreground"}`}>{code}</button>
+                  <button key={code} type="button" aria-pressed={lang === code} onClick={() => setLang(code)} className={`px-3 py-1.5 uppercase ${lang === code ? (code === "pt" ? "bg-[#1fbf5f] text-[#062b14]" : "bg-[#ff6b6b] text-[#3a0a0a]") : "bg-[var(--panel)] text-foreground"}`}>{code}</button>
                 ))}
               </span>
             </div>
@@ -911,7 +911,7 @@ export default function EarthSleuthsApp() {
               {t("O detetive Sr. Coelho resolve um caso na sua frente, passo a passo. Você pode sair quando quiser.", "Detective Mr. Bunny solves a case in front of you, step by step. You can leave whenever you want.")}
             </p>
             <div className="mt-7 flex flex-col gap-3">
-              <button type="button" autoFocus onClick={() => closeWelcome(true)} className="btn-pop inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[var(--sun)] px-6 font-serif text-lg font-bold text-[var(--on-color)]">
+              <button type="button" onClick={() => closeWelcome(true)} className="btn-pop inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[var(--sun)] px-6 font-serif text-lg font-bold text-[var(--on-color)]">
                 <Play className="h-5 w-5 fill-current" aria-hidden /> {t("Ver o tutorial", "Show me the tutorial")}
               </button>
               <button type="button" onClick={() => closeWelcome(false)} className="btn-pop inline-flex h-12 items-center justify-center rounded-full bg-[var(--panel)] px-6 font-serif font-bold text-foreground">
