@@ -11,7 +11,7 @@ function loadMaps(): Promise<void> {
   if (window.google?.maps?.Map) return Promise.resolve();
   if (mapsReady) return mapsReady;
   const key = import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY'];
-  if (!key) return Promise.reject(new Error("A conexão com o Google Maps não está disponível."));
+  if (!key) return Promise.reject(new Error("Google Maps is not available."));
   mapsReady = new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
     let settled = false;
@@ -22,7 +22,7 @@ function loadMaps(): Promise<void> {
       script.remove();
       delete window.initEarthSleuthMap;
       mapsReady = undefined;
-      reject(new Error("Não foi possível carregar o Google Maps. Confira a conexão e tente recarregar a página."));
+      reject(new Error("Google Maps could not load. Check the connection and reload the page."));
     };
     const timeout = window.setTimeout(fail, 20000);
     window.initEarthSleuthMap = () => {
@@ -68,9 +68,10 @@ export default function MapSelector(props: Props) {
   useEffect(() => { latest.current = props; }, [props]);
 
   useEffect(() => {
-    // Referrer-restricted Maps cannot be validated in the agent sandbox.
-    if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
-      setError("Google Maps loads on the published app address.");
+    // Without a browser key (for example a fresh local checkout) show a notice instead of a broken map.
+    // For local development, put your own referrer-restricted key in .env.local (see .env.example).
+    if (!import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY']) {
+      setError("Google Maps needs a browser key. Use the coordinates or the shortcuts above.");
       return;
     }
     let disposed = false;
