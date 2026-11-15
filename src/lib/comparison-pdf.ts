@@ -1,12 +1,11 @@
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
-import font from "@/assets/report-unicode.ttf.asset.json";
 import { canExportComparison, comparisonRows } from "./comparison-report";
 import type { InvestigationResponse, Lang, SceneAnalysis } from "@/types/sleuth";
 
 export async function createComparisonPdf(result: InvestigationResponse, lang: Lang): Promise<Blob> {
   if (!canExportComparison(result)) throw new Error("A comparação precisa de resultados para as cenas A e B.");
-  const response = await fetch(font.url);
+  const response = await fetch("/fonts/report-unicode.ttf");
   if (!response.ok) throw new Error("Não foi possível carregar a fonte do relatório.");
   const bytes = new Uint8Array(await response.arrayBuffer());
   let binary = "";

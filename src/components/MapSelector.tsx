@@ -10,7 +10,7 @@ let mapsReady: Promise<void> | undefined;
 function loadMaps(): Promise<void> {
   if (window.google?.maps?.Map) return Promise.resolve();
   if (mapsReady) return mapsReady;
-  const key = import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY'];
+  const key = import.meta.env['VITE_GOOGLE_MAPS_BROWSER_KEY'];
   if (!key) return Promise.reject(new Error("Google Maps is not available."));
   mapsReady = new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
@@ -34,7 +34,6 @@ function loadMaps(): Promise<void> {
     };
     const params = new URLSearchParams({
       key, loading: "async", callback: "initEarthSleuthMap", v: "weekly", language: "en",
-      channel: import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID'] ?? "",
     });
     script.async = true;
     script.src = `https://maps.googleapis.com/maps/api/js?${params}`;
@@ -96,7 +95,7 @@ export default function MapSelector(props: Props) {
   useEffect(() => {
     // Without a browser key (for example a fresh local checkout) show a notice instead of a broken map.
     // For local development, put your own referrer-restricted key in .env.local (see .env.example).
-    if (!import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY']) {
+    if (!import.meta.env['VITE_GOOGLE_MAPS_BROWSER_KEY']) {
       setError("Google Maps needs a browser key. Use the coordinates or the shortcuts above.");
       return;
     }
