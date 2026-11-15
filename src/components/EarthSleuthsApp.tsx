@@ -36,7 +36,7 @@ function MapSelector(props: React.ComponentProps<typeof MapSelectorLazy>) {
 }
 
 const GlobeLazy = lazy(() => import("@/components/GlobeSelector"));
-const globeFallback = <div className="space flex h-[380px] items-center justify-center font-serif text-lg font-bold text-white sm:h-[540px]">…</div>;
+const globeFallback = <div className="space flex h-[380px] items-center justify-center font-serif text-lg font-bold text-white sm:h-[clamp(260px,calc(100vh-520px),540px)]">…</div>;
 function GlobeSelector(props: React.ComponentProps<typeof GlobeLazy>) {
   return (
     <ClientOnly fallback={globeFallback}>
@@ -337,7 +337,8 @@ export default function EarthSleuthsApp() {
     if (stage === 2) { setStep(2); setTwoScenes(c.twoScenes); setMapTarget("A"); setSceneA(c.sceneA); if (c.sceneB) setSceneB(c.sceneB); }
     if (stage === 3) { setStep(3); setStartYear(FIRST_YEAR); setEndYear(LAST_YEAR); }
     setDemo({ caseId: c.id, stage });
-    setTimeout(() => scrollToId("q1"), 40);
+    // The place step is tall: line the page up with its content, so the whole globe is on screen.
+    setTimeout(() => scrollToId(stage === 2 ? "step-body" : "q1"), 40);
   };
   const snapshot = () => { beforeDemo.current = { question, clues, twoScenes, sceneA, sceneB, startYear, endYear, step, result, scrollY: window.scrollY }; };
   const startPicking = () => { snapshot(); setPicking(true); scrollToId("casos-grid"); };
@@ -591,7 +592,7 @@ export default function EarthSleuthsApp() {
             })}
           </div>
           <div aria-hidden className="spiral" />
-          <div className="relative p-5 [perspective:1600px] sm:p-7">
+          <div id="step-body" className="relative scroll-mt-20 p-5 [perspective:1600px] sm:p-7">
           <div key={`flip${step}`} aria-hidden className="page-flip ruled pointer-events-none absolute inset-0 z-10 bg-[var(--panel)]" />
         {step === 1 && (
           <div key="s1" className="page-in">

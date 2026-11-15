@@ -451,7 +451,7 @@ export default function GlobeSelector(props: Props) {
   const pt = props.lang === "pt";
   const ctl = "btn-pop grid h-11 w-11 place-items-center rounded-full bg-[var(--panel)] font-serif text-2xl font-bold leading-none text-foreground";
   return (
-    <div className="space relative h-[380px] w-full overflow-hidden sm:h-[540px]">
+    <div className="space relative h-[380px] w-full overflow-hidden sm:h-[clamp(260px,calc(100vh-520px),540px)]">
       <canvas ref={canvas} className="h-full w-full touch-pan-y" aria-label={pt ? "Globo 3D: gire e clique para escolher o lugar" : "3D globe: spin and click to choose the place"} />
       {!ready && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 font-serif text-lg font-bold text-white" role="status">
