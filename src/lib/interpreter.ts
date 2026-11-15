@@ -42,7 +42,7 @@ export function interpretQuestion(raw: string): InterpretedIntent {
   } else if (day) {
     intent = base(["T2M_MAX"], "Dias mais quentes → média das máximas diárias (T2M_MAX).", "Hotter days → mean daily maximum temperature (T2M_MAX).");
   } else if (sat) {
-    intent = base(["IMERG_PRECTOT"], "Chuva por satélite → GPM IMERG (desde 2001, ~10 km).", "Satellite rain → GPM IMERG (since 2001, ~10 km).");
+    intent = base(["PRECTOTCORR"], "Chuva por satélite: o NASA POWER mensal não entrega GPM IMERG, então usamos a precipitação corrigida (PRECTOTCORR, desde 1981).", "Satellite rain: NASA POWER monthly does not serve GPM IMERG, so we use corrected precipitation (PRECTOTCORR, since 1981).");
   } else if (rain) {
     intent = base(["PRECTOTCORR"], "Chuva → precipitação corrigida MERRA-2 (PRECTOTCORR, desde 1981).", "Rain → MERRA-2 bias-corrected precipitation (PRECTOTCORR, since 1981).");
   } else if (heat) {

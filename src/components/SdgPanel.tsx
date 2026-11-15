@@ -7,22 +7,22 @@ import type { Lang } from "@/types/sleuth";
 const SDG = [
   { code: "ODS 4", target: "4.4 e 4.7", pt: "Educação de qualidade", en: "Quality education", Icon: GraduationCap, tone: "border-red-200 bg-red-50 text-red-950",
     dpt: "Letramento científico com dados reais da NASA para estudantes e professores.", den: "Data and science literacy with real NASA data.",
-    ind: "Turmas atendidas e evolução no diagnóstico antes/depois" },
+    ind: "Turmas atendidas e evolução no diagnóstico antes/depois", inden: "Classes reached and before/after diagnostic progress" },
   { code: "ODS 13", target: "13.1 e 13.3", pt: "Ação climática", en: "Climate action", Icon: Flame, tone: "border-emerald-200 bg-emerald-50 text-emerald-950",
     dpt: "Tendências locais viram evidência auditável para conscientização.", den: "Local trends become auditable evidence for awareness.",
-    ind: "Casos investigados e municípios analisados" },
+    ind: "Casos investigados e municípios analisados", inden: "Cases investigated and municipalities analyzed" },
   { code: "ODS 6", target: "6.4", pt: "Água potável e saneamento", en: "Clean water", Icon: Droplets, tone: "border-primary bg-sky-50 text-primary",
     dpt: "Chuva, umidade do solo e evapotranspiração no Semiárido. Não mede potabilidade.", den: "Rain, soil wetness and evapotranspiration. Does not measure water quality.",
-    ind: "Investigações hídricas com cobertura validada" },
+    ind: "Investigações hídricas com cobertura validada", inden: "Water investigations with validated coverage" },
   { code: "ODS 11", target: "11.b", pt: "Cidades sustentáveis", en: "Sustainable cities", Icon: Building2, tone: "border-amber-200 bg-amber-50 text-amber-950",
     dpt: "Trilha complementar: apoio a conversas de adaptação local, sem substituir a Defesa Civil.", den: "Complementary: supports local adaptation dialogue.",
-    ind: "Dossiês territoriais exploratórios" },
+    ind: "Dossiês territoriais exploratórios", inden: "Exploratory local case files" },
   { code: "ODS 15", target: "15.3", pt: "Vida terrestre", en: "Life on land", Icon: Trees, tone: "border-lime-200 bg-lime-50 text-lime-950",
     dpt: "Umidade nas raízes e sinais associados à degradação do solo.", den: "Root-zone moisture and land-degradation signals.",
-    ind: "Áreas com pistas de secura analisadas" },
+    ind: "Áreas com pistas de secura analisadas", inden: "Areas with dryness clues analyzed" },
   { code: "ODS 14", target: "14.1", pt: "Vida na água (próxima fase)", en: "Life below water (roadmap)", Icon: Waves, tone: "border-indigo-200 bg-indigo-50 text-indigo-950",
     dpt: "Próxima fase: clorofila-a costeira via MODIS-Aqua. Ainda não implementado.", den: "Roadmap: coastal chlorophyll-a. Not implemented yet.",
-    ind: "Estudos costeiros documentados" },
+    ind: "Estudos costeiros documentados", inden: "Documented coastal studies" },
 ];
 
 export default function SdgPanel({ activeTargets, lang }: { activeTargets: string[]; lang: Lang }) {
@@ -66,12 +66,12 @@ export default function SdgPanel({ activeTargets, lang }: { activeTargets: strin
           return (
             <div key={s.code} className={`rounded-xl border p-4 ${s.tone} ${on ? "ring-2 ring-primary" : ""}`}>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold">{s.code} · {t("meta", "target")} {s.target}</span>
+                <span className="text-sm font-bold">{t(s.code, s.code.replace("ODS", "SDG"))} · {t("meta", "target")} {t(s.target, s.target.replace(" e ", " and "))}</span>
                 <s.Icon className="h-4 w-4" aria-hidden />
               </div>
               <h3 className="mt-1 text-sm font-semibold">{t(s.pt, s.en)}</h3>
               <p className="mt-1 text-sm opacity-90">{t(s.dpt, s.den)}</p>
-              <p className="mt-2 border-t border-black/10 pt-2 text-xs">{t("Indicador", "Indicator")}: {s.ind}</p>
+              <p className="mt-2 border-t border-black/10 pt-2 text-xs">{t("Indicador", "Indicator")}: {t(s.ind, s.inden)}</p>
             </div>
           );
         })}

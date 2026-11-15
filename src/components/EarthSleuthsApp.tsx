@@ -1,4 +1,9 @@
-import logo from "@/assets/earth-sleuth-logo.jpg.asset.json";
+const LOGO_SRC = "/brand/orbiting-analytics-globe.png";
+const LOGO_SMALL_SRC = "/brand/orbiting-analytics-globe-256.png";
+// Address search and the AI comparison summary need a signed-in account (Supabase + Lovable gateway).
+// Space Apps judges must reach the whole project without a login, so both stay off for the submission.
+// Set to true to bring them back; their code is unchanged.
+const ACCOUNT_FEATURES_ENABLED = false;
 import agenciesPrimary from "@/assets/space-agencies-primary.png.asset.json";
 import agenciesSecondary from "@/assets/space-agencies-secondary.png.asset.json";
 import spaceAppsLogo from "@/assets/space-apps-logo.png.asset.json";
@@ -68,7 +73,7 @@ function Step({ n, title, hint, children, id }: { n: string; title: string; hint
 }
 
 export default function EarthSleuthsApp() {
-  const [lang, setLang] = useState<Lang>("pt");
+  const [lang, setLang] = useState<Lang>("en");
   const t = (pt: string, en: string) => (lang === "pt" ? pt : en);
 
   const [question, setQuestion] = useState("");
@@ -105,7 +110,7 @@ export default function EarthSleuthsApp() {
     const to = !isNaN(num("to")) ? num("to") : num("end");
     if (!isNaN(from)) setStartYear(from);
     if (!isNaN(to)) setEndYear(to);
-    if (ids.length) setNote("Ficha restaurada a partir de um link. Confira e clique em Examinar.");
+    if (ids.length) setNote(lang === "pt" ? "Ficha restaurada a partir de um link. Confira e clique em Examinar." : "Case file restored from a link. Check it and click Examine the evidence.");
     restored.current = true;
   }, []);
 
@@ -206,12 +211,12 @@ export default function EarthSleuthsApp() {
       <header className="sticky top-0 z-50 border-b border-blue-yonder bg-deep-blue text-brand-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <a href="#topo" className="flex items-center gap-2.5">
-            <img src={logo.url} alt="" className="h-12 w-12 shrink-0 rounded-md bg-brand-white object-contain" />
+            <img src={LOGO_SMALL_SRC} alt="" width={48} height={48} className="h-12 w-12 shrink-0 rounded-md bg-brand-white object-contain p-0.5" />
             <span className="font-serif text-lg font-extrabold text-brand-white">Earth Sleuth</span>
           </a>
           <nav className="flex items-center gap-1 text-sm">
             <Button asChild variant="plain" size="content" className="hidden rounded-md bg-neon-blue px-3 py-1.5 text-brand-white hover:bg-electric-blue sm:inline-flex"><a href="#pista">{t("Investigar", "Investigate")}</a></Button>
-            <Button asChild variant="plain" size="content" className="hidden rounded-md px-3 py-1.5 text-blue-yonder hover:bg-electric-blue hover:text-brand-white sm:inline-flex"><a href="#ods">ODS</a></Button>
+            <Button asChild variant="plain" size="content" className="hidden rounded-md px-3 py-1.5 text-blue-yonder hover:bg-electric-blue hover:text-brand-white sm:inline-flex"><a href="#ods">{t("ODS", "SDGs")}</a></Button>
             <Button asChild variant="plain" size="content" className="rounded-md bg-martian-red px-3 py-1.5 text-brand-white hover:bg-rocket-red"><a href="#mural">{t("Mural", "Board")} ({mural.length})</a></Button>
             <Button variant="plain" size="content" type="button" onClick={() => setLang((l) => (l === "pt" ? "en" : "pt"))}
               className="ml-1 rounded-md border border-neon-yellow bg-neon-yellow px-2.5 py-1.5 font-semibold text-deep-blue hover:bg-neon-yellow/80">
@@ -227,7 +232,7 @@ export default function EarthSleuthsApp() {
 
       <div id="topo" className="starfield">
         <div className="mx-auto max-w-6xl px-4 pb-12 pt-14 sm:pt-20">
-          <img src={logo.url} alt="Logo Earth Sleuth: planeta, lupa e satélite" className="mb-5 h-36 w-36 object-contain sm:h-44 sm:w-44" />
+          <img src={LOGO_SRC} width={176} height={176} alt={t("Logo Earth Sleuth: planeta, lupa e satélite", "Earth Sleuth logo: globe, magnifying glass and satellite")} className="mb-5 h-36 w-36 object-contain sm:h-44 sm:w-44" />
           <p className="text-sm font-semibold text-primary">{t("O planeta deixa pistas. A ciência revela tendências.", "Earth leaves clues. Science reveals trends.")}</p>
           <h1 className="mt-3 max-w-3xl text-4xl font-extrabold leading-[1.1] text-foreground sm:text-6xl">
             {t("Está mudando mesmo — ou foi só um ano estranho?", "Is it really changing — or was it just a strange year?")}
@@ -279,7 +284,7 @@ export default function EarthSleuthsApp() {
           <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--night)] p-4 text-sm">
             <span className="font-semibold text-foreground">{t(focused.label_pt, focused.label_en)}</span>
             <span className="text-[var(--muted)]"> — {t(focused.simple_def_pt, focused.simple_def_en)} </span>
-            <span className="text-xs text-[var(--muted)]">({focused.parameter_id} · {focused.source_mission} · {focused.data_type_pt} · {t("desde", "since")} {focused.min_year})</span>
+            <span className="text-xs text-[var(--muted)]">({focused.parameter_id} · {focused.source_mission} · {t(focused.data_type_pt, focused.data_type_en ?? focused.data_type_pt)} · {t("desde", "since")} {focused.min_year})</span>
           </div>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <label className="relative flex-1">
@@ -319,7 +324,7 @@ export default function EarthSleuthsApp() {
                 className="flex cursor-pointer flex-wrap items-center gap-2 rounded-xl border bg-[var(--night)] p-3 text-sm"
                 style={{ borderColor: (twoScenes ? mapTarget === k : true) ? col : "var(--line)" }}>
                 <MapPin className="h-4 w-4" style={{ color: col }} aria-hidden />
-                <span className="font-bold" style={{ color: col }}>Cena {k}</span>
+                <span className="font-bold" style={{ color: col }}>{t("Cena", "Scene")} {k}</span>
                 <input aria-label={`Nome da cena ${k}`} value={s.region_name} onChange={(e) => set({ ...s, region_name: e.target.value })}
                   className="min-w-0 flex-1 rounded-md border border-[var(--line)] bg-transparent px-2 py-1 text-foreground" />
                 <input aria-label="Latitude" type="number" step="0.01" min={-90} max={90} value={s.latitude}
@@ -329,8 +334,10 @@ export default function EarthSleuthsApp() {
               </div>
             ))}
           </div>
-          <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
-            onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
+          {ACCOUNT_FEATURES_ENABLED && (
+            <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
+              onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
+          )}
           <MapSelector sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
             latStep={primary.lat_step} lonStep={primary.lon_step}
             onSelectPoint={(target, lat, lon) =>
@@ -401,7 +408,7 @@ export default function EarthSleuthsApp() {
             ) : (
               <div className="space-y-8">
                 <ComparisonExport result={result} lang={lang} />
-                <ComparisonSynthesis result={result} lang={lang} />
+                {ACCOUNT_FEATURES_ENABLED && <ComparisonSynthesis result={result} lang={lang} />}
                 {dossierSummary && (
                   <div className="reveal flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--line)] bg-[var(--night)] p-4">
                     <span className="font-serif text-4xl font-extrabold text-foreground">{dossierSummary.sig}<span className="text-xl text-[var(--muted)]">/{dossierSummary.total}</span></span>
@@ -441,7 +448,7 @@ export default function EarthSleuthsApp() {
                         </p>
                       )}
                       <div className={`grid gap-4 ${two ? "lg:grid-cols-2" : ""}`}>
-                        {([["scene_a", "Cena A", "var(--brand)"], ["scene_b", "Cena B", "var(--orange)"]] as const).map(([k, label, color]) => {
+                        {([["scene_a", t("Cena A", "Scene A"), "var(--brand)"], ["scene_b", t("Cena B", "Scene B"), "var(--orange)"]] as const).map(([k, label, color]) => {
                           const s = r[k];
                           if (!s) return null;
                           return (
@@ -492,19 +499,15 @@ export default function EarthSleuthsApp() {
       <footer className="border-t border-[var(--line)] px-4 py-6 text-center text-xs text-[var(--muted)]">
         <section aria-labelledby="nasa-resources-title" className="mx-auto mb-8 max-w-6xl text-left">
           <h2 id="nasa-resources-title" className="mb-4 text-lg font-bold text-deep-blue">{t("Recursos NASA utilizados", "NASA resources used")}</h2>
-          <div className="grid gap-6 sm:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2">
             <div className="border-l-4 border-neon-blue pl-4">
               <Button asChild variant="link" size="content" className="p-0 text-base font-semibold text-electric-blue"><a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener noreferrer">NASA POWER ↗</a></Button>
               <p className="mt-2 text-sm leading-relaxed">{t("API de séries mensais por coordenadas, do NASA Langley Research Center. Fonte de acesso aos dados das investigações.", "Monthly time-series API by coordinates from NASA Langley Research Center. Data access source for investigations.")}</p>
-              <p className="mt-2 break-words text-xs text-electric-blue">T2M · T2M_MIN · T2M_MAX · PRECTOTCORR · GWETROOT · EVPTRNS · IMERG_PRECTOT</p>
+              <p className="mt-2 break-words text-xs text-electric-blue">T2M · T2M_MIN · T2M_MAX · PRECTOTCORR · GWETROOT · EVPTRNS</p>
             </div>
             <div className="border-l-4 border-rocket-red pl-4">
               <Button asChild variant="link" size="content" className="p-0 text-base font-semibold text-electric-blue"><a href="https://gmao.gsfc.nasa.gov/gmao-products/merra-2/" target="_blank" rel="noopener noreferrer">GMAO MERRA-2 ↗</a></Button>
               <p className="mt-2 text-sm leading-relaxed">{t("Reanálise usada para temperatura do ar, precipitação corrigida, umidade do solo e evapotranspiração, acessada via POWER.", "Reanalysis used for air temperature, corrected precipitation, soil wetness and evapotranspiration, accessed through POWER.")}</p>
-            </div>
-            <div className="border-l-4 border-neon-yellow pl-4">
-              <Button asChild variant="link" size="content" className="p-0 text-base font-semibold text-electric-blue"><a href="https://gpm.nasa.gov/data/imerg" target="_blank" rel="noopener noreferrer">GPM IMERG ↗</a></Button>
-              <p className="mt-2 text-sm leading-relaxed">{t("Estimativas de precipitação por satélite da missão Global Precipitation Measurement, usadas na pista de chuva por satélite via POWER.", "Satellite precipitation estimates from Global Precipitation Measurement, used for the satellite rain clue through POWER.")}</p>
             </div>
           </div>
         </section>
@@ -518,7 +521,7 @@ export default function EarthSleuthsApp() {
           <img src={agenciesSecondary.url} alt="KASA e outras agências espaciais internacionais, incluindo ASES, AEE, Turkish Space Agency, Mohammed Bin Rashid Space Centre e UK Space Agency"
             width={967} height={81} loading="lazy" className="mx-auto h-auto w-full min-w-[720px] max-w-4xl object-contain" />
         </div>
-        {t("Dados: NASA Langley Research Center POWER Project (MERRA-2, GPM IMERG). Uma linha de tendência descreve o passado; não é previsão climática. Projeto independente, sem endosso da NASA.",
+        {t("Dados: NASA Langley Research Center POWER Project (MERRA-2). Uma linha de tendência descreve o passado; não é previsão climática. Projeto independente, sem endosso da NASA.",
           "Data: NASA Langley Research Center POWER Project. A trend line describes the past; it is not a climate forecast. Independent project, not endorsed by NASA.")}
       </footer>
 

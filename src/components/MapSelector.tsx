@@ -33,7 +33,7 @@ function loadMaps(): Promise<void> {
       resolve();
     };
     const params = new URLSearchParams({
-      key, loading: "async", callback: "initEarthSleuthMap", v: "weekly", language: "pt-BR", region: "BR",
+      key, loading: "async", callback: "initEarthSleuthMap", v: "weekly", language: "en",
       channel: import.meta.env['VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID'] ?? "",
     });
     script.async = true;
@@ -70,7 +70,7 @@ export default function MapSelector(props: Props) {
   useEffect(() => {
     // Referrer-restricted Maps cannot be validated in the agent sandbox.
     if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
-      setError("Google Maps disponível no endereço publicado do aplicativo.");
+      setError("Google Maps loads on the published app address.");
       return;
     }
     let disposed = false;

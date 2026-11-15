@@ -75,7 +75,7 @@ export default function VerdictStamp({ run, scene, label, accent, lang, onOpenEv
             {st.slope_per_decade !== null ? <CountUp value={st.slope_per_decade} /> : "—"}
           </dd>
           <dd className="mt-1 text-xs text-[var(--muted)]">
-            {st.ci95_low !== null ? `${unit} · IC 95% ${st.ci95_low} a ${st.ci95_high}` : t("não calculado", "not computed")}
+            {st.ci95_low !== null ? `${unit} · ${t("IC 95%", "95% CI")} ${st.ci95_low} ${t("a", "to")} ${st.ci95_high}` : t("não calculado", "not computed")}
           </dd>
         </div>
         <div className={tile}>

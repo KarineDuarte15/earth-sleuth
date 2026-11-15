@@ -4,10 +4,10 @@ import EarthSleuthsApp from "@/components/EarthSleuthsApp";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Earth Sleuth — investigue o planeta com evidência" },
-      { name: "description", content: "Investigação de tendências climáticas com dados abertos da NASA POWER, Seasonal Mann-Kendall, inclinação de Sen e carimbo estatístico auditável." },
-      { property: "og:title", content: "Earth Sleuth — investigue o planeta com evidência" },
-      { property: "og:description", content: "Tendências climáticas com dados da NASA POWER e evidência estatística auditável." },
+      { title: "Earth Sleuth: investigate the planet with evidence" },
+      { name: "description", content: "Investigate climate trends with open NASA POWER data, the Seasonal Mann-Kendall test, Sen's slope and an auditable statistical verdict." },
+      { property: "og:title", content: "Earth Sleuth: investigate the planet with evidence" },
+      { property: "og:description", content: "Climate trends with NASA POWER data and auditable statistical evidence." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

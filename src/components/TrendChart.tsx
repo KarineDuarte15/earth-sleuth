@@ -30,7 +30,7 @@ export default function TrendChart({ scene, lang, color = "var(--brand)" }: Prop
         <div className="flex flex-wrap gap-3 text-[var(--muted)]">
           <span className="flex items-center gap-1.5"><i className="inline-block h-0.5 w-4" style={{ background: color }} /> {view === "anomaly" ? t("anomalia mensal", "monthly anomaly") : t("valor mensal", "monthly value")}</span>
           {view === "anomaly" && hasTrend && <span className="flex items-center gap-1.5"><i className="inline-block h-0.5 w-4 bg-foreground" /> {t("tendência de Sen", "Sen's trend")}</span>}
-          {view === "anomaly" && hasTrend && <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: `color-mix(in oklab, ${color} 25%, transparent)` }} /> IC 95%</span>}
+          {view === "anomaly" && hasTrend && <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: `color-mix(in oklab, ${color} 25%, transparent)` }} /> {t("IC 95%", "95% CI")}</span>}
         </div>
         <div role="tablist" className="inline-flex rounded-lg border border-[var(--line)] bg-[var(--night)] p-0.5">
           {(["anomaly", "raw"] as const).map((v) => (
@@ -58,7 +58,7 @@ export default function TrendChart({ scene, lang, color = "var(--brand)" }: Prop
             {view === "anomaly" ? (
               <>
                 <ReferenceLine y={0} stroke="var(--muted)" strokeDasharray="4 4" />
-                {hasTrend && <Area type="linear" dataKey="band" name="IC 95%" stroke="none" fill={color} fillOpacity={0.25} isAnimationActive={false} />}
+                {hasTrend && <Area type="linear" dataKey="band" name={t("IC 95%", "95% CI")} stroke="none" fill={color} fillOpacity={0.25} isAnimationActive={false} />}
                 <Line type="monotone" dataKey="anomaly" name={t("Anomalia", "Anomaly")} stroke={color} strokeWidth={1.1} strokeOpacity={0.85} dot={false} connectNulls={false} />
                 {hasTrend && <Line type="linear" dataKey="trend" name={t("Tendência", "Trend")} stroke="var(--ink)" strokeWidth={2.5} dot={false} animationDuration={1400} />}
               </>
