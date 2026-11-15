@@ -14,6 +14,7 @@ import VerdictStamp from "@/components/VerdictStamp";
 import CrossCheck from "@/components/CrossCheck";
 import EvidenceModal from "@/components/EvidenceModal";
 import SdgPanel from "@/components/SdgPanel";
+import ResultsChat from "@/components/ResultsChat";
 
 const MapSelector = dynamic(() => import("@/components/MapSelector"), {
   ssr: false,
@@ -478,6 +479,7 @@ export default function EarthSleuthsApp() {
                     </article>
                   );
                 })}
+                <ResultsChat key={result.case_id} result={result} lang={lang} />
               </section>
             )}
           </>

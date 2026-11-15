@@ -18,6 +18,7 @@ from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
+from _lib import chat as chat_llm  # noqa: E402
 from _lib import interpret as llm  # noqa: E402
 from _lib import meteomatics  # noqa: E402
 from _lib.catalog import CLUE_CATALOG  # noqa: E402
@@ -107,6 +108,22 @@ class InterpretRequest(BaseModel):
 async def interpret_question(req: InterpretRequest):
     """Ficha da investigação a partir da pergunta livre (LLM). {"fallback": true} = usar as palavras-chave."""
     return await llm.interpret(req.question)
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "model"]
+    text: str = Field(..., min_length=1, max_length=4000)
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(..., min_length=1, max_length=40)
+    context: dict
+
+
+@app.post("/api/chat")
+async def chat(req: ChatRequest):
+    """Conversa sobre os resultados da investigação (Gemini). {"ok": false} = serviço indisponível."""
+    return await chat_llm.chat([m.model_dump() for m in req.messages], req.context)
 
 
 @app.post("/api/cross-check")
