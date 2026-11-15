@@ -29,7 +29,7 @@ Uma experiência investigativa para transformar perguntas ambientais em evidênc
 
 **Earth Sleuths** é um laboratório visual para investigar mudanças ambientais locais.
 
-Você escolhe uma pergunta, aponta uma região no mapa e seleciona as pistas que deseja cruzar. O sistema busca séries mensais da **NASA POWER**, calcula tendências e devolve um dossiê legível — com contexto, incerteza, procedência e limites da evidência.
+Você escolhe uma pergunta, crava um alfinete num globo 3D e seleciona as pistas que deseja cruzar. O sistema busca séries mensais da **NASA POWER**, calcula tendências e devolve um dossiê legível — com contexto, incerteza, procedência e limites da evidência.
 
 > Não é uma máquina de confirmar suspeitas.  
 > É uma ferramenta para descobrir o que os dados permitem afirmar.

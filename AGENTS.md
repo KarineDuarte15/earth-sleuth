@@ -38,7 +38,9 @@ use the editor.
 - Uploaded brand imagery is served through Lovable Assets pointers; the favicon is a resized local copy so browsers can load it directly.
 - Use the plain/content Button variant for migrated controls that retain bespoke layouts, keeping shared control behavior without imposing fixed dimensions.
 
-- The investigation map uses Google Maps JavaScript with a callback-based async loader and public connector key; preserve point selection and grid overlays without browser Places calls or an unconfigured map ID.
+- The place step uses a 3D globe (`src/components/GlobeSelector.tsx`, three.js loaded on demand). Its texture is painted at runtime from `public/brand/world-50m.json` (Natural Earth 1:50m country outlines, public domain). It needs no API key. `MapSelector.tsx` (Google Maps) is only the fallback when WebGL is unavailable.
+- The guided tutorial lives in `EarthSleuthsApp.tsx` (`picking` and `demo` state). Stopping it restores the case file from a snapshot; do not put `data-reveal` on an element whose `className` React rewrites, or it turns invisible after a re-render.
+- The fallback map uses Google Maps JavaScript with a callback-based async loader and public connector key; preserve point selection and grid overlays without browser Places calls or an unconfigured map ID.
 - Address lookup uses authenticated Places API (New) server functions with bounded results and client-debounced, session-token suggestions; never expose a public Maps proxy, and apply selected coordinates and labels only to the active scene.
 - Comparison PDFs are generated from completed investigation results in the browser, preserving actual provenance and date-aligned monthly data; prepare the Blob before offering a synchronous download for mobile compatibility.
 - Supplied interactive proposals are served unchanged through asset pointers with top-level view and same-origin download links to preserve PDF annotations.
