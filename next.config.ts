@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   async rewrites() {
     // Local: /api/* vai para o FastAPI na porta 8000. Na Vercel, quem roteia é o vercel.json.
     if (process.env.NODE_ENV === "development") {
