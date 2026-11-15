@@ -173,7 +173,7 @@ export default function MapSelector(props: Props) {
             👆 {pt ? "Toque no mapa para marcar o lugar" : "Tap the map to mark the place"} {props.activeTarget}
           </p>
           <p className="outline-ink pointer-events-none absolute bottom-3 left-3 rounded-full bg-[var(--panel)] px-3 py-1 font-mono text-[11px] font-semibold text-foreground">
-            {pt ? "quadrado do dado" : "data square"}: {props.latStep}° × {props.lonStep}° (~55 km)
+            {pt ? "cada quadrado de dado tem ~55 km" : "each data square is ~55 km"}
           </p>
           <div className="absolute bottom-6 right-3 flex flex-col gap-2">
             <button type="button" onClick={() => zoom(1)} aria-label={pt ? "Aproximar" : "Zoom in"} className={ctl}>+</button>

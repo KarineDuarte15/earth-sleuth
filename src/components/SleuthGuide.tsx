@@ -22,7 +22,7 @@ interface Props {
   text: string;
   mood: GuideMood;
   spot: GuideSpot;
-  /** Shown during a guided demo so the visitor can jump to the result. */
+  /** Shown during a guided demo so the visitor can leave it at any step. */
   onSkip?: () => void;
   /** During a guided demo: the visitor moves to the next step with this button. */
   onNext?: () => void;
@@ -290,7 +290,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, onNext, ne
     return (
       <button type="button" onClick={() => toggle(true)}
         className="btn-pop fixed bottom-4 right-4 z-40 inline-flex h-12 items-center gap-2 rounded-full bg-[var(--sun)] px-4 text-sm font-extrabold text-[var(--on-color)]">
-        <MessageCircle className="h-4 w-4" aria-hidden /> {t("Chamar o Sleuth", "Call Sleuth")}
+        <MessageCircle className="h-4 w-4" aria-hidden /> {t("Chamar o Sr. Coelho", "Call Mr. Bunny")}
       </button>
     );
   }
@@ -334,7 +334,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, onNext, ne
         style={{ left: box.x + box.w / 2 - 4, top: box.y + box.h * 0.3, bottom: 0,
           backgroundImage: "repeating-linear-gradient(45deg, #e8b46a 0 6px, #b97a3a 6px 12px)" }} />
     )}
-    <aside aria-label={t("Sleuth, o guia", "Sleuth, your guide")} className="pointer-events-none fixed left-0 top-0 z-[46]"
+    <aside aria-label={t("Sr. Coelho, o guia", "Mr. Bunny, your guide")} className="pointer-events-none fixed left-0 top-0 z-[46]"
       style={{
         width: box.w, height: box.h, transform: `translate3d(${box.x}px, ${box.y}px, 0)`,
         transition: walking ? `transform ${move}, width ${move}, height ${move}` : "none",
@@ -343,7 +343,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, onNext, ne
         <div key={shown} style={bubbleStyle}
           className="pop-sm pointer-events-auto absolute z-10 animate-[bubble_0.4s_cubic-bezier(.2,.9,.3,1.4)_both] rounded-3xl bg-[var(--panel)] p-3.5 text-[13.5px] font-semibold leading-snug text-foreground sm:text-[15px]">
           <p className="mb-1 flex items-center justify-between gap-2">
-            <span className="rounded-full bg-[var(--sun)] px-2 py-0.5 font-serif text-[11px] font-bold uppercase tracking-wider text-[var(--on-color)]">Sleuth</span>
+            <span className="rounded-full bg-[var(--sun)] px-2 py-0.5 font-serif text-[11px] font-bold uppercase tracking-wider text-[var(--on-color)]">{t("Sr. Coelho", "Mr. Bunny")}</span>
             <span className="flex items-center gap-1">
               {onSkip && (
                 <button type="button" onClick={onSkip} className="inline-flex h-7 items-center gap-1 rounded-full bg-[var(--coral)] px-2.5 text-[11px] font-extrabold text-[var(--on-color)]">
@@ -370,7 +370,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, onNext, ne
           </svg>
         </div>
       )}
-      <button type="button" onClick={onPoke} aria-label={t("Cutucar o Sleuth", "Poke Sleuth")} className="pointer-events-auto absolute left-0 top-0 block cursor-pointer"
+      <button type="button" onClick={onPoke} aria-label={t("Cutucar o Sr. Coelho", "Poke Mr. Bunny")} className="pointer-events-auto absolute left-0 top-0 block cursor-pointer"
         style={{ width: base.w, height: base.h, transformOrigin: "0 0", transform: `translate(${(box.w - base.w * scale) / 2}px, 0) scale(${scale})`, transition: walking ? `transform ${move}` : "none" }}>
         <span aria-hidden className="absolute bottom-[3%] left-1/2 h-[7%] w-[60%] -translate-x-1/2 rounded-[50%] bg-black/25 blur-md dark:bg-black/60" />
         {show3d ? (

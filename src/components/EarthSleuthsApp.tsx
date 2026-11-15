@@ -92,7 +92,7 @@ const SECTIONS = ["topo", "casos", "q1", "veredito", "caderno", "mural"] as cons
 type SectionId = (typeof SECTIONS)[number];
 
 const SECTION_LINE: Record<SectionId | "q2" | "q3", DemoLine> = {
-  topo: { pt: "Oi! Eu sou o Sleuth, um detetive de dados. Vamos descobrir se o clima está mudando mesmo em algum lugar?", en: "Hi! I'm Sleuth, a data detective. Shall we find out if the climate is really changing somewhere?" },
+  topo: { pt: "Oi! Eu sou o Sr. Coelho, um detetive de dados. Vamos descobrir se o clima está mudando mesmo em algum lugar?", en: "Hi! I'm Mr. Bunny, a data detective. Shall we find out if the climate is really changing somewhere?" },
   casos: { pt: "Comece aqui! Escolha um caso e aperte Assistir. Eu resolvo na sua frente e explico cada passo.", en: "Start here! Pick a case and press Watch. I'll solve it in front of you and explain every step." },
   q1: { pt: "Passo 1: qual é a sua pergunta? Cada cartão é uma variável climática da NASA, explicada em palavras simples.", en: "Step 1: what's your question? Each card is a NASA climate variable, in plain words." },
   q2: { pt: "Passo 2: onde investigar? Toque num lugar ou no mapa. Dica: compare dois lugares, a mesma pista pode subir num e descer no outro!", en: "Step 2: where should we look? Tap a place or the map. Tip: compare two places, the same clue can rise in one and fall in the other!" },
@@ -184,6 +184,10 @@ export default function EarthSleuthsApp() {
   const [section, setSection] = useState<SectionId>("topo");
   // Guided demo: which case is playing and which step it is on (0 intro, 1 clue, 2 place, 3 years).
   const [demo, setDemo] = useState<{ caseId: string; stage: 0 | 1 | 2 | 3 } | null>(null);
+  // First visit: a pop-up offers the tutorial. Not shown when the page opens from a shared case link.
+  const [welcome, setWelcome] = useState(false);
+  // The case file as it was before the tutorial started, so leaving the tutorial puts everything back.
+  const beforeDemo = useRef<{ question: string; clues: string[]; twoScenes: boolean; sceneA: ScenePoint; sceneB: ScenePoint; startYear: number; endYear: number; step: 1 | 2 | 3; result: InvestigationResponse | null; scrollY: number } | null>(null);
   const restored = useRef(false);
   useScrollReveal([result, mural.length, lang]);
 
@@ -202,6 +206,7 @@ export default function EarthSleuthsApp() {
     if (!isNaN(to)) setEndYear(to);
     if (p.get("lang") === "pt") setLang("pt");
     if (ids.length) setNote("restored");
+    else { try { if (localStorage.getItem("es-tour") !== "seen") setWelcome(true); } catch { setWelcome(true); } }
     restored.current = true;
   }, []);
 
@@ -302,7 +307,15 @@ export default function EarthSleuthsApp() {
     setDemo({ caseId: c.id, stage });
     setTimeout(() => scrollToId("q1"), 40);
   };
-  const watchDemo = (c: PresetCase) => demoStage(c, 0);
+  const watchDemo = (c: PresetCase) => {
+    beforeDemo.current = { question, clues, twoScenes, sceneA, sceneB, startYear, endYear, step, result, scrollY: window.scrollY };
+    demoStage(c, 0);
+  };
+  const closeWelcome = (startTour: boolean) => {
+    setWelcome(false);
+    try { localStorage.setItem("es-tour", "seen"); } catch { /* storage unavailable */ }
+    if (startTour) watchDemo(PRESET_CASES[0]);
+  };
   const demoCase = demo ? PRESET_CASES.find((p) => p.id === demo.caseId) ?? null : null;
   const demoNext = () => {
     if (!demo || !demoCase) return;
@@ -311,11 +324,24 @@ export default function EarthSleuthsApp() {
     void run(caseInput(demoCase));
   };
 
-  const skipDemo = () => {
-    const c = demoCase;
+  // Leaving the tutorial at any step: everything stops and the page goes back to how it was.
+  const exitDemo = () => {
+    const b = beforeDemo.current;
     setDemo(null);
-    if (c) { applyCase(c); void run(caseInput(c)); }
+    if (!b) return;
+    setQuestion(b.question); setClues(b.clues); setTwoScenes(b.twoScenes); setMapTarget("A");
+    setSceneA(b.sceneA); setSceneB(b.sceneB); setStartYear(b.startYear); setEndYear(b.endYear);
+    setStep(b.step); setResult(b.result);
+    setTimeout(() => window.scrollTo({ top: b.scrollY, behavior: "smooth" }), 60);
   };
+  const exitRef = useRef(exitDemo);
+  exitRef.current = exitDemo;
+  useEffect(() => {
+    if (!demo && !welcome) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key !== "Escape") return; if (welcome) closeWelcome(false); else exitRef.current(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [demo, welcome]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveToMural = (r: ClueRun) => {
     if (!result || !r.scene_a) return;
@@ -416,8 +442,8 @@ export default function EarthSleuthsApp() {
               <Search className="wiggle ml-2 inline h-10 w-10 text-[var(--tang)] sm:h-14 sm:w-14" aria-hidden />
             </h1>
             <p className="fade-up delay-2 mt-6 max-w-xl text-xl leading-relaxed text-[var(--muted)]">
-              {t("O planeta deixa pistas. Escolha uma, aponte um lugar e descubra com o Sleuth, usando 45 anos de dados da NASA, se existe mesmo uma ",
-                "The planet leaves clues. Pick one, point at a place and find out with Sleuth, using 45 years of NASA data, whether there is a real ")}
+              {t("O planeta deixa pistas. Escolha uma, aponte um lugar e descubra com o Sr. Coelho, usando 45 anos de dados da NASA, se existe mesmo uma ",
+                "The planet leaves clues. Pick one, point at a place and find out with Mr. Bunny, using 45 years of NASA data, whether there is a real ")}
               <b className="text-foreground">{t("tendência", "trend")}</b>
               {t(" ou se foi só o sobe e desce normal do clima.", " or just the climate's normal ups and downs.")}
             </p>
@@ -450,7 +476,7 @@ export default function EarthSleuthsApp() {
       <section id="casos" className="scroll-mt-24 border-b-[2.5px] border-[var(--stroke)] bg-[var(--band)] py-16">
         <div className="mx-auto max-w-6xl px-4">
           {sectionTitle(t("Comece por aqui", "Start here"), <>{t("Escolha um caso e ", "Pick a case and ")}<span className="text-gradient">{t("aperte Assistir", "press Watch")}</span></>, "var(--coral)")}
-          <p data-reveal className="-mt-4 mb-8 text-center text-lg font-semibold text-[var(--muted)]">{t("O Sleuth resolve o caso na sua frente e explica cada passo.", "Sleuth solves the case in front of you and explains every step.")}</p>
+          <p data-reveal className="-mt-4 mb-8 text-center text-lg font-semibold text-[var(--muted)]">{t("O Sr. Coelho resolve o caso na sua frente e explica cada passo.", "Mr. Bunny solves the case in front of you and explains every step.")}</p>
           <div className="grid gap-7 md:grid-cols-3">
             {PRESET_CASES.map((c, i) => {
               const col = ["var(--sun)", "var(--coral)", "var(--aqua)"][i % 3];
@@ -564,7 +590,7 @@ export default function EarthSleuthsApp() {
 
         {step === 2 && (
           <div key="s2" className="reveal">
-          <StepHead title={t("Onde vamos investigar?", "Where should we look?")} hint={t("Escolha um tipo de lugar, toque no mapa ou digite as coordenadas.", "Pick a kind of place, tap the map or type coordinates.")} />
+          <StepHead title={t("Onde vamos investigar?", "Where should we look?")} hint={t("Escolha um tipo de lugar ou toque no mapa.", "Pick a kind of place or tap the map.")} />
           <div className="grid gap-5 lg:grid-cols-[1fr_1.15fr]"><div>
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {REGION_SHORTCUTS.map((r, i) => {
@@ -604,10 +630,6 @@ export default function EarthSleuthsApp() {
                 <span className="grid h-8 w-8 place-items-center rounded-full font-serif font-bold text-white" style={{ background: col }}>{k}</span>
                 <input aria-label={t(`Nome do lugar ${k}`, `Place ${k} name`)} value={s.region_name} onChange={(e) => set({ ...s, region_name: e.target.value })}
                   className="min-w-0 flex-1 rounded-xl border-2 border-[var(--line)] bg-transparent px-2.5 py-1.5 text-foreground" />
-                <input aria-label="Latitude" type="number" step="0.01" min={-90} max={90} value={s.latitude}
-                  onChange={(e) => set({ ...s, latitude: Number(e.target.value) })} className="w-24 rounded-xl border-2 border-[var(--line)] bg-transparent px-2.5 py-1.5 font-mono text-foreground" />
-                <input aria-label="Longitude" type="number" step="0.01" min={-180} max={180} value={s.longitude}
-                  onChange={(e) => set({ ...s, longitude: Number(e.target.value) })} className="w-24 rounded-xl border-2 border-[var(--line)] bg-transparent px-2.5 py-1.5 font-mono text-foreground" />
               </div>
             ))}
           </div>
@@ -620,7 +642,7 @@ export default function EarthSleuthsApp() {
             <MapSelector lang={lang} sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
               latStep={primary.lat_step} lonStep={primary.lon_step}
               onSelectPoint={(target, lat, lon) =>
-                (target === "A" ? setSceneA : setSceneB)({ region_name: `${t("Ponto", "Point")} ${lat}, ${lon}`, latitude: lat, longitude: lon })} />
+                (target === "A" ? setSceneA : setSceneB)({ region_name: t("Ponto no mapa", "Map point"), latitude: lat, longitude: lon })} />
           </div>
           </div></div>
           </div>
@@ -692,6 +714,15 @@ export default function EarthSleuthsApp() {
                   <option value="live">{t("Só NASA ao vivo", "NASA live only")}</option>
                 </select>
               </label>
+              {([["A", sceneA, setSceneA], ...(twoScenes ? [["B", sceneB, setSceneB]] : [])] as [string, ScenePoint, (s: ScenePoint) => void][]).map(([k, s, set]) => (
+                <label key={k} className="mt-2 flex flex-wrap items-center gap-2">
+                  {t(`Coordenadas do lugar ${k} (latitude, longitude)`, `Place ${k} coordinates (latitude, longitude)`)}
+                  <input aria-label={`Latitude ${k}`} type="number" step="0.01" min={-90} max={90} value={s.latitude}
+                    onChange={(e) => set({ ...s, latitude: Number(e.target.value) })} className="outline-ink w-24 rounded-xl bg-[var(--panel)] px-2 py-2 font-mono text-foreground" />
+                  <input aria-label={`Longitude ${k}`} type="number" step="0.01" min={-180} max={180} value={s.longitude}
+                    onChange={(e) => set({ ...s, longitude: Number(e.target.value) })} className="outline-ink w-24 rounded-xl bg-[var(--panel)] px-2 py-2 font-mono text-foreground" />
+                </label>
+              ))}
             </details>
           </div>
           {error && (
@@ -860,9 +891,36 @@ export default function EarthSleuthsApp() {
         </div>
       </footer>
 
-      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={SPOT[guideKey]} cheer={cheer} active={talking || loading || !!demo} onSkip={demo ? skipDemo : undefined} onNext={demo ? demoNext : undefined}
+      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={SPOT[guideKey]} cheer={cheer} active={talking || loading || !!demo} onSkip={demo ? exitDemo : undefined} onNext={demo ? demoNext : undefined}
         nextLabel={demo ? (demo.stage === 3 ? t("Examinar as evidências!", "Examine the evidence!") : t("Continuar", "Continue")) : undefined} />
       {demo && <div aria-hidden className="reveal fixed inset-0 z-[44] bg-[#0b0724]/55 backdrop-blur-[3px]" />}
+      {welcome && (
+        <div className="reveal fixed inset-0 z-[70] grid place-items-center bg-[#0b0724]/60 p-4 backdrop-blur-[3px]" onClick={() => closeWelcome(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="welcome-title" onClick={(e) => e.stopPropagation()} className="pop pop-in w-full max-w-md rounded-[32px] p-6 text-center sm:p-8">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <span className="outline-ink -rotate-2 rounded-full bg-[var(--sun)] px-3 py-1 font-serif text-xs font-bold uppercase tracking-wider text-[var(--on-color)]">{t("Sr. Coelho", "Mr. Bunny")}</span>
+              <span className="outline-ink flex overflow-hidden rounded-full text-xs font-extrabold">
+                {(["pt", "en"] as const).map((code) => (
+                  <button key={code} type="button" aria-pressed={lang === code} onClick={() => setLang(code)} className={`px-3 py-1.5 uppercase ${lang === code ? "bg-[var(--coral)] text-[var(--on-color)]" : "bg-[var(--panel)] text-foreground"}`}>{code}</button>
+                ))}
+              </span>
+            </div>
+            <span className="outline-ink wiggle mx-auto grid h-20 w-20 place-items-center rounded-full bg-[var(--grape)] text-[var(--on-color)]"><Search className="h-10 w-10" aria-hidden /></span>
+            <h2 id="welcome-title" className="mt-5 text-3xl font-bold leading-tight text-foreground sm:text-4xl">{t("Quer ver o tutorial?", "Want to see the tutorial?")}</h2>
+            <p className="mt-3 text-[17px] font-semibold leading-relaxed text-[var(--muted)]">
+              {t("O detetive Sr. Coelho resolve um caso na sua frente, passo a passo. Você pode sair quando quiser.", "Detective Mr. Bunny solves a case in front of you, step by step. You can leave whenever you want.")}
+            </p>
+            <div className="mt-7 flex flex-col gap-3">
+              <button type="button" autoFocus onClick={() => closeWelcome(true)} className="btn-pop inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[var(--sun)] px-6 font-serif text-lg font-bold text-[var(--on-color)]">
+                <Play className="h-5 w-5 fill-current" aria-hidden /> {t("Ver o tutorial", "Show me the tutorial")}
+              </button>
+              <button type="button" onClick={() => closeWelcome(false)} className="btn-pop inline-flex h-12 items-center justify-center rounded-full bg-[var(--panel)] px-6 font-serif font-bold text-foreground">
+                {t("Agora não", "Not now")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {evidence && <EvidenceModal run={evidence.run} scene={evidence.scene} lang={lang} onClose={() => setEvidence(null)} />}
     </div>
   );
