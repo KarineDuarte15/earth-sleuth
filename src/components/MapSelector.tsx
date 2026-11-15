@@ -46,7 +46,7 @@ interface Props {
 export default function MapSelector({ sceneA, sceneB, activeTarget, latStep, lonStep, onSelectPoint }: Props) {
   const focus = activeTarget === "B" && sceneB ? sceneB : sceneA;
   return (
-    <div className="relative h-[340px] w-full overflow-hidden rounded-xl border border-slate-200">
+    <div className="relative h-[420px] w-full overflow-hidden rounded-2xl border border-slate-200 shadow-inner">
       <MapContainer center={[focus.latitude, focus.longitude]} zoom={4} scrollWheelZoom className="h-full w-full z-0">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
