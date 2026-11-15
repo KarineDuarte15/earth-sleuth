@@ -10,6 +10,9 @@ const MODEL_URL = "/brand/sleuth-bunny.glb";
 // Animation names inside the GLB (Bunny Detective by bird, CC BY 4.0 / CC0).
 const CLIP: Record<GuideMood, string> = { idle: "Idle", talk: "Talk", walk: "Walk", investigate: "Investigate", jump: "Jump", climb: "Climb" };
 const WALK_MS = 1700;
+// Going back to the planet: walk under it, then climb the rope.
+const APPROACH_MS = 1100;
+const CLIMB_MS = 1500;
 const HERO_ANCHOR = "sleuth-stage";
 
 interface Box { x: number; y: number; w: number; h: number }
@@ -170,6 +173,9 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
   const walkingRef = useRef(false);
   boxRef.current = box;
   walkingRef.current = walking;
+  const climbingRef = useRef(false);
+  climbingRef.current = climbing;
+  const [moveMs, setMoveMs] = useState(WALK_MS);
 
   useEffect(() => {
     setWebgl(hasWebGL());
@@ -189,10 +195,22 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
     const dx = next.x + next.w / 2 - (cur.x + cur.w / 2);
     const dy = next.y - cur.y;
     if (Math.abs(dx) < 24 && Math.abs(dy) < 24 && Math.abs(next.w - cur.w) < 8) { setBox(next); return; }
-    // Going up to the planet (or anywhere much higher) he climbs; otherwise he walks.
-    const up = spot === "hero" || dy < -140;
-    setClimbing(up);
-    setFacing(up ? 0 : dx > 24 ? 1 : dx < -24 ? -1 : 0);
+    if (spot === "hero") {
+      // 1) walk along the bottom until he is under the planet, 2) climb the rope that hangs from it.
+      const under: Box = { x: next.x + next.w / 2 - cur.w / 2, y: cur.y, w: cur.w, h: cur.h };
+      const adx = under.x - cur.x;
+      setClimbing(false);
+      setMoveMs(APPROACH_MS);
+      setFacing(adx > 24 ? 1 : adx < -24 ? -1 : 0);
+      setWalking(true);
+      setBox(under);
+      const t1 = setTimeout(() => { setClimbing(true); setFacing(0); setMoveMs(CLIMB_MS); setBox(targetBox("hero")); }, APPROACH_MS);
+      const t2 = setTimeout(() => { setWalking(false); setClimbing(false); setBox(targetBox("hero")); }, APPROACH_MS + CLIMB_MS);
+      return () => { clearTimeout(t1); clearTimeout(t2); setWalking(false); setClimbing(false); setFacing(0); };
+    }
+    setClimbing(false);
+    setMoveMs(WALK_MS);
+    setFacing(dx > 24 ? 1 : dx < -24 ? -1 : 0);
     setWalking(true);
     setBox(next);
     const id = setTimeout(() => { setWalking(false); setFacing(0); setBox(targetBox(spot)); }, WALK_MS);
@@ -208,7 +226,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
       raf = requestAnimationFrame(() => {
         setVw(document.documentElement.clientWidth);
         // Walking back to the planet: keep chasing it while the page scrolls, so he lands on it.
-        if (!walkingRef.current || spot === "hero") setBox(targetBox(spot));
+        if (!walkingRef.current || climbingRef.current) setBox(targetBox(spot));
       });
     };
     window.addEventListener("resize", update);
@@ -266,7 +284,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
 
   const base = baseSize(vw);
   const scale = box.h / base.h;
-  const move = walking ? `${WALK_MS}ms cubic-bezier(.45,.05,.35,1)` : "";
+  const move = walking ? `${moveMs}ms cubic-bezier(.45,.05,.35,1)` : "";
 
   const bubbleStyle: React.CSSProperties = inHero
     ? small ? { left: "50%", bottom: "100%", translate: "-50% 0", width: "min(78vw, 280px)" } : { left: "66%", top: "-7%", width: 215 }
@@ -274,6 +292,13 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
       : { left: "calc(100% - 14px)", bottom: "34%", width: small ? Math.min(230, vw - box.w - 8) : 260 };
 
   return (
+    <>
+    {climbing && (
+      // The rope hangs from the planet down to the bottom of the screen; he climbs in front of it.
+      <span aria-hidden className="reveal pointer-events-none fixed z-[39] w-2 rounded-full border-2 border-[var(--stroke)]"
+        style={{ left: box.x + box.w / 2 - 4, top: box.y + box.h * 0.3, bottom: 0,
+          backgroundImage: "repeating-linear-gradient(45deg, #e8b46a 0 6px, #b97a3a 6px 12px)" }} />
+    )}
     <aside aria-label={t("Sleuth, o guia", "Sleuth, your guide")} className="pointer-events-none fixed left-0 top-0 z-40"
       style={{
         width: box.w, height: box.h, transform: `translate3d(${box.x}px, ${box.y}px, 0)`,
@@ -311,5 +336,6 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
         )}
       </button>
     </aside>
+    </>
   );
 }
