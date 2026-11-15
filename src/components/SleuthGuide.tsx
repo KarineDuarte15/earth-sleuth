@@ -24,6 +24,9 @@ interface Props {
   spot: GuideSpot;
   /** Shown during a guided demo so the visitor can jump to the result. */
   onSkip?: () => void;
+  /** During a guided demo: the visitor moves to the next step with this button. */
+  onNext?: () => void;
+  nextLabel?: string;
   /** True while Sleuth has something new to say; on phones the bubble folds away once he is done. */
   active?: boolean;
   /** Bump this number to make him jump for joy (a clue picked, a case pinned...). */
@@ -172,7 +175,7 @@ function hasWebGL() {
   } catch { return false; }
 }
 
-export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = true, cheer = 0 }: Props) {
+export default function SleuthGuide({ lang, text, mood, spot, onSkip, onNext, nextLabel, active = true, cheer = 0 }: Props) {
   const t = (pt: string, en: string) => (lang === "pt" ? pt : en);
   const reduce = useReducedMotion();
   const [ready, setReady] = useState(false);
@@ -301,7 +304,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
   // when the margin is too narrow to hold it, the bubble folds away once he has finished talking.
   const margin = Math.max(0, (vw - 1152) / 2);
   const tight = small || margin < 250;
-  const bubbleVisible = !walking && (!tight || active || peek || !!onSkip || inHero);
+  const bubbleVisible = (!walking || !!onNext) && (!tight || active || peek || !!onSkip || inHero);
   const effMood: GuideMood = poke ? "jump" : walking ? (climbing ? "climb" : "walk") : fidget ? "investigate" : mood;
 
   const base = baseSize(vw);
@@ -331,7 +334,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
         style={{ left: box.x + box.w / 2 - 4, top: box.y + box.h * 0.3, bottom: 0,
           backgroundImage: "repeating-linear-gradient(45deg, #e8b46a 0 6px, #b97a3a 6px 12px)" }} />
     )}
-    <aside aria-label={t("Sleuth, o guia", "Sleuth, your guide")} className="pointer-events-none fixed left-0 top-0 z-40"
+    <aside aria-label={t("Sleuth, o guia", "Sleuth, your guide")} className="pointer-events-none fixed left-0 top-0 z-[46]"
       style={{
         width: box.w, height: box.h, transform: `translate3d(${box.x}px, ${box.y}px, 0)`,
         transition: walking ? `transform ${move}, width ${move}, height ${move}` : "none",
@@ -347,13 +350,20 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
                   <SkipForward className="h-3 w-3" aria-hidden /> {t("Pular", "Skip")}
                 </button>
               )}
-              <button type="button" onClick={() => toggle(false)} aria-label={t("Esconder o guia", "Hide the guide")}
+              {!onNext && (
+            <button type="button" onClick={() => toggle(false)} aria-label={t("Esconder o guia", "Hide the guide")}
                 className="grid h-7 w-7 place-items-center rounded-full text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-foreground">
                 <X className="h-3.5 w-3.5" aria-hidden />
               </button>
+            )}
             </span>
           </p>
           <p role="status" aria-live="polite">{shown}</p>
+          {onNext && (
+            <button type="button" onClick={onNext} className="btn-pop mt-3 flex h-12 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--sun)] px-4 font-serif text-base font-bold text-[var(--on-color)]">
+              {nextLabel} <span aria-hidden>→</span>
+            </button>
+          )}
           <svg aria-hidden viewBox="0 0 32 22" className="absolute h-[22px] w-8" style={tailStyle}>
             <path d="M3 0 L16 19 L29 0" fill="var(--panel)" stroke="var(--stroke)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
             <path d="M4.5 0 L27.5 0" stroke="var(--panel)" strokeWidth="4" />

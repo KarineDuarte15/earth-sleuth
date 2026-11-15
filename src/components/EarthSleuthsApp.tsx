@@ -182,8 +182,8 @@ export default function EarthSleuthsApp() {
   const [mural, setMural] = useState<MuralCard[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
   const [section, setSection] = useState<SectionId>("topo");
-  const [demo, setDemo] = useState<{ text: string; mood: GuideMood; caseId: string } | null>(null);
-  const demoToken = useRef(0);
+  // Guided demo: which case is playing and which step it is on (0 intro, 1 clue, 2 place, 3 years).
+  const [demo, setDemo] = useState<{ caseId: string; stage: 0 | 1 | 2 | 3 } | null>(null);
   const restored = useRef(false);
   useScrollReveal([result, mural.length, lang]);
 
@@ -293,46 +293,27 @@ export default function EarthSleuthsApp() {
     startYear: FIRST_YEAR, endYear: LAST_YEAR, question: lang === "pt" ? c.question_pt : c.question_en,
   });
 
-  // Guided demo: Sleuth fills each step on screen and explains it, then runs the real analysis.
-  const watchDemo = async (c: PresetCase) => {
-    const token = ++demoToken.current;
-    const script = DEMO_SCRIPT[c.id];
-    const pause = (ms: number) => new Promise<void>((res, rej) => setTimeout(() => (token === demoToken.current ? res() : rej(new Error("cancelled"))), ms));
-    const say = (l: DemoLine, mood: GuideMood = "talk") => setDemo({ text: L(l), mood, caseId: c.id });
-    try {
-      setResult(null);
-      say(script.intro, "walk");
-      scrollToId("q1");
-      setStep(1);
-      await pause(2600);
-      setQuestion(lang === "pt" ? c.question_pt : c.question_en);
-      setClues(c.clues);
-      say(script.clue);
-      await pause(4200);
-      setStep(2);
-      setTwoScenes(c.twoScenes);
-      setMapTarget("A");
-      setSceneA(c.sceneA);
-      if (c.sceneB) setSceneB(c.sceneB);
-      say(script.place, "walk");
-      await pause(4200);
-      setStep(3);
-      setStartYear(FIRST_YEAR);
-      setEndYear(LAST_YEAR);
-      say(script.years);
-      await pause(3600);
-      setDemo(null);
-      await run(caseInput(c));
-    } catch {
-      /* the visitor skipped or started another demo */
-    }
+  // Guided demo, one step per click: Sleuth fills a step, the choice is spotlighted, the visitor presses Continue.
+  const demoStage = (c: PresetCase, stage: 0 | 1 | 2 | 3) => {
+    if (stage === 0) { setResult(null); setStep(1); setClues([]); setTwoScenes(false); }
+    if (stage === 1) { setStep(1); setQuestion(lang === "pt" ? c.question_pt : c.question_en); setClues(c.clues); }
+    if (stage === 2) { setStep(2); setTwoScenes(c.twoScenes); setMapTarget("A"); setSceneA(c.sceneA); if (c.sceneB) setSceneB(c.sceneB); }
+    if (stage === 3) { setStep(3); setStartYear(FIRST_YEAR); setEndYear(LAST_YEAR); }
+    setDemo({ caseId: c.id, stage });
+    setTimeout(() => scrollToId("q1"), 40);
+  };
+  const watchDemo = (c: PresetCase) => demoStage(c, 0);
+  const demoCase = demo ? PRESET_CASES.find((p) => p.id === demo.caseId) ?? null : null;
+  const demoNext = () => {
+    if (!demo || !demoCase) return;
+    if (demo.stage < 3) { demoStage(demoCase, (demo.stage + 1) as 1 | 2 | 3); return; }
+    setDemo(null);
+    void run(caseInput(demoCase));
   };
 
   const skipDemo = () => {
-    const caseId = demo?.caseId;
-    demoToken.current++;
+    const c = demoCase;
     setDemo(null);
-    const c = PRESET_CASES.find((p) => p.id === caseId);
     if (c) { applyCase(c); void run(caseInput(c)); }
   };
 
@@ -378,7 +359,8 @@ export default function EarthSleuthsApp() {
 
   const guideKey = section === "q1" ? (step === 1 ? "q1" : step === 2 ? "q2" : "q3") : section;
   const [talking, setTalking] = useState(false);
-  const guideText = demo ? demo.text
+  const demoLine = demo ? DEMO_SCRIPT[demo.caseId][(["intro", "clue", "place", "years"] as const)[demo.stage]] : null;
+  const guideText = demoLine ? L(demoLine)
     : loading ? t("Investigando... estou buscando décadas de dados mensais da NASA e testando cada pista.", "Investigating... I'm pulling decades of monthly NASA data and testing each clue.")
     : resultLine && section === "veredito" ? resultLine.text
     : L(SECTION_LINE[guideKey]);
@@ -388,7 +370,7 @@ export default function EarthSleuthsApp() {
     const id = setTimeout(() => setTalking(false), ms);
     return () => clearTimeout(id);
   }, [guideText]);
-  const guideMood: GuideMood = demo ? demo.mood
+  const guideMood: GuideMood = demo ? "talk"
     : loading || peering ? "investigate"
     : resultLine?.real && section === "veredito" && talking ? "jump"
     : talking ? "talk" : "idle";
@@ -487,7 +469,7 @@ export default function EarthSleuthsApp() {
                       <p className="mt-2 flex-1 text-[15px] leading-relaxed text-[var(--muted)]">{t(c.question_pt, c.question_en)}</p>
                       <p className="mt-4 flex items-center gap-1.5 text-sm font-bold text-foreground"><MapPin className="h-4 w-4 text-[var(--coral)]" aria-hidden />{shortName(c.sceneA.region_name)}{c.sceneB ? ` × ${shortName(c.sceneB.region_name)}` : ""}</p>
                       <div className="mt-5 flex gap-2.5">
-                        <button type="button" onClick={() => void watchDemo(c)} className="btn-pop inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-4 font-serif font-bold text-[var(--primary-foreground)]">
+                        <button type="button" onClick={() => watchDemo(c)} className="btn-pop inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-4 font-serif font-bold text-[var(--primary-foreground)]">
                           <Play className="h-4 w-4 fill-current" aria-hidden /> {t("Assistir", "Watch")}
                         </button>
                         <button type="button" onClick={() => { applyCase(c); scrollToId("q1"); }} className="btn-pop inline-flex h-12 items-center justify-center gap-1.5 rounded-full bg-[var(--panel)] px-4 font-serif font-bold text-foreground">
@@ -513,7 +495,7 @@ export default function EarthSleuthsApp() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-16">
         {sectionTitle(t("Sua vez", "Your turn"), <>{t("Monte a ficha e peça o ", "Fill in the case file, get a ")}<span className="text-gradient">{t("veredito", "verdict")}</span></>, "var(--sun)")}
 
-        <section id="q1" data-reveal className="pop scroll-mt-28 overflow-hidden rounded-[32px]">
+        <section id="q1" data-reveal className={`pop scroll-mt-28 overflow-hidden rounded-[32px] ${demo ? "pointer-events-none relative z-[45]" : ""}`}>
           <div role="tablist" aria-label={t("Passos da investigação", "Investigation steps")} className="grid grid-cols-3 border-b-[2.5px] border-[var(--stroke)]">
             {([
               { n: 1, I: HelpCircle, c: "var(--grape)", h: t("O quê?", "What?"), v: clues.map((id) => friendlyOf(id)?.short[lang] ?? id).join(", ") },
@@ -547,7 +529,7 @@ export default function EarthSleuthsApp() {
               return (
                 <button key={c.parameter_id} type="button" aria-pressed={on} onClick={() => toggleClue(c.parameter_id)}
                   style={on ? { background: `color-mix(in oklab, ${col} 30%, var(--panel))` } : undefined}
-                  className={`group relative flex gap-4 rounded-3xl p-4 text-left ${on ? "pop -translate-x-0.5 -translate-y-0.5" : "outline-ink lift bg-[var(--panel)]"}`}>
+                  className={`group relative flex gap-4 rounded-3xl p-4 text-left ${on ? "pop -translate-x-0.5 -translate-y-0.5" : "outline-ink lift bg-[var(--panel)]"} ${demo ? (on ? "spot" : "dimmed") : ""}`}>
                   <span className={`outline-ink grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-[var(--on-color)] ${on ? "wiggle" : "group-wiggle"}`} style={{ background: col }}>
                     {I && <I className="h-7 w-7" aria-hidden />}
                   </span>
@@ -561,7 +543,7 @@ export default function EarthSleuthsApp() {
               );
             })}
           </div>
-          <div className="mt-6 rounded-3xl border-[2.5px] border-dashed border-[var(--stroke)] bg-[var(--panel-2)] p-4">
+          <div className={`mt-6 rounded-3xl border-[2.5px] border-dashed border-[var(--stroke)] bg-[var(--panel-2)] p-4 ${demo ? "dimmed" : ""}`}>
             <p className="mb-2 flex items-center gap-1.5 font-bold text-foreground"><Wand2 className="wiggle h-4 w-4 text-[var(--coral)]" aria-hidden />{t("Ou pergunte do seu jeito", "Or ask in your own words")}</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <label className="relative flex-1">
@@ -594,7 +576,7 @@ export default function EarthSleuthsApp() {
               return (
                 <button key={r.region_name} type="button" aria-pressed={on} onClick={() => (mapTarget === "B" && twoScenes ? setSceneB : setSceneA)(r)}
                   style={on ? { background: `color-mix(in oklab, ${col} 35%, var(--panel))` } : undefined}
-                  className={`group flex flex-col items-center gap-1.5 rounded-3xl p-3 text-center ${on ? "pop" : "outline-ink lift bg-[var(--panel)]"}`}>
+                  className={`group flex flex-col items-center gap-1.5 rounded-3xl p-3 text-center ${on || (demo && twoScenes && sceneB.region_name === r.region_name) ? "pop" : "outline-ink lift bg-[var(--panel)]"} ${demo ? (on || (twoScenes && sceneB.region_name === r.region_name) ? "spot" : "dimmed") : ""}`}>
                   <span className="outline-ink group-wiggle grid h-11 w-11 place-items-center rounded-full text-[var(--on-color)]" style={{ background: col }}><I className="h-5 w-5" aria-hidden /></span>
                   <span className="font-serif text-[15px] font-bold leading-tight text-foreground">{shortName(r.region_name)}</span>
                   {k && <span className="text-xs font-semibold text-[var(--muted)]">{t(k.pt, k.en)}</span>}
@@ -604,7 +586,7 @@ export default function EarthSleuthsApp() {
           </div>
           <button type="button" onClick={() => { setTwoScenes((v) => !v); setMapTarget(twoScenes ? "A" : "B"); }} aria-pressed={twoScenes}
             style={twoScenes ? { background: "color-mix(in oklab, var(--tang) 30%, var(--panel))" } : undefined}
-            className={`mb-5 flex w-full items-center gap-3 rounded-3xl p-4 text-left ${twoScenes ? "pop" : "outline-ink lift bg-[var(--panel)]"}`}>
+            className={`mb-5 flex w-full items-center gap-3 rounded-3xl p-4 text-left ${twoScenes ? "pop" : "outline-ink lift bg-[var(--panel)]"} ${demo ? (twoScenes ? "spot" : "dimmed") : ""}`}>
             <span className="outline-ink grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--tang)] text-[var(--on-color)]"><SplitSquareHorizontal className="h-6 w-6" aria-hidden /></span>
             <span className="min-w-0 flex-1">
               <span className="block font-serif text-lg font-bold text-foreground">{twoScenes ? t("Comparando dois lugares!", "Comparing two places!") : t("Comparar com outro lugar", "Compare with another place")}</span>
@@ -650,7 +632,7 @@ export default function EarthSleuthsApp() {
           <div className="mb-7 flex flex-wrap items-center gap-3">
             {PERIODS.map((p) => (
               <button key={p.id} type="button" aria-pressed={activePeriod === p.id} onClick={() => { setStartYear(p.from); setEndYear(p.to); }}
-                className={`btn-pop h-12 rounded-full px-5 font-serif font-bold ${activePeriod === p.id ? "bg-[var(--sun)] text-[var(--on-color)]" : "bg-[var(--panel)] text-foreground"}`}>
+                className={`btn-pop h-12 rounded-full px-5 font-serif font-bold ${activePeriod === p.id ? "bg-[var(--sun)] text-[var(--on-color)]" : "bg-[var(--panel)] text-foreground"} ${demo ? (activePeriod === p.id ? "spot" : "dimmed") : ""}`}>
                 {t(p.pt, p.en)}
               </button>
             ))}
@@ -685,7 +667,7 @@ export default function EarthSleuthsApp() {
         )}
           </div>
           <div className="flex flex-col gap-3 border-t-[2.5px] border-[var(--stroke)] bg-[var(--panel-2)] p-4 sm:flex-row sm:items-start sm:p-5">
-            <div className="flex gap-3">
+            <div className={`flex gap-3 ${demo ? "dimmed" : ""}`}>
               <button type="button" disabled={step === 1} onClick={() => setStep((step - 1) as 1 | 2)} className="btn-pop inline-flex h-16 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-[var(--panel)] px-5 font-serif text-lg font-bold text-foreground disabled:opacity-40 sm:flex-none">
                 <ArrowRight className="h-5 w-5 rotate-180" aria-hidden /> {t("Voltar", "Back")}
               </button>
@@ -695,7 +677,7 @@ export default function EarthSleuthsApp() {
             </div>
           <div className="min-w-0 flex-1">
             <button type="button" disabled={loading} onClick={() => void run()} onPointerEnter={() => setPeering(true)} onPointerLeave={() => setPeering(false)}
-              className="btn-pop group relative flex h-16 w-full items-center justify-center gap-3 overflow-hidden rounded-3xl bg-[var(--sun)] px-6 font-serif text-xl font-bold text-[var(--on-color)] sm:text-2xl disabled:opacity-80">
+              className={`btn-pop group relative flex h-16 w-full items-center justify-center gap-3 overflow-hidden rounded-3xl bg-[var(--sun)] px-6 font-serif text-xl font-bold text-[var(--on-color)] sm:text-2xl disabled:opacity-80 ${demo ? (demo.stage === 3 ? "spot" : "dimmed") : ""}`}>
               {loading && <span className="scan-bar absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent" aria-hidden />}
               <ScanSearch className={`h-8 w-8 ${loading ? "wiggle" : "group-wiggle"}`} aria-hidden />
               {loading ? t("Examinando as pistas…", "Examining the clues…") : t("Examinar as evidências!", "Examine the evidence!")}
@@ -878,7 +860,9 @@ export default function EarthSleuthsApp() {
         </div>
       </footer>
 
-      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={SPOT[guideKey]} cheer={cheer} active={talking || loading || !!demo} onSkip={demo ? skipDemo : undefined} />
+      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={SPOT[guideKey]} cheer={cheer} active={talking || loading || !!demo} onSkip={demo ? skipDemo : undefined} onNext={demo ? demoNext : undefined}
+        nextLabel={demo ? (demo.stage === 3 ? t("Examinar as evidências!", "Examine the evidence!") : t("Continuar", "Continue")) : undefined} />
+      {demo && <div aria-hidden className="reveal fixed inset-0 z-[44] bg-[#0b0724]/55 backdrop-blur-[3px]" />}
       {evidence && <EvidenceModal run={evidence.run} scene={evidence.scene} lang={lang} onClose={() => setEvidence(null)} />}
     </div>
   );
