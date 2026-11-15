@@ -350,7 +350,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, onNext, ne
                   <SkipForward className="h-3 w-3" aria-hidden /> {t("Pular", "Skip")}
                 </button>
               )}
-              {!onNext && (
+              {!onNext && !onSkip && (
             <button type="button" onClick={() => toggle(false)} aria-label={t("Esconder o guia", "Hide the guide")}
                 className="grid h-7 w-7 place-items-center rounded-full text-[var(--muted)] hover:bg-[var(--panel-2)] hover:text-foreground">
                 <X className="h-3.5 w-3.5" aria-hidden />

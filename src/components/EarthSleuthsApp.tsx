@@ -184,8 +184,8 @@ export default function EarthSleuthsApp() {
   const [section, setSection] = useState<SectionId>("topo");
   // Guided demo: which case is playing and which step it is on (0 intro, 1 clue, 2 place, 3 years).
   const [demo, setDemo] = useState<{ caseId: string; stage: 0 | 1 | 2 | 3 } | null>(null);
-  // First visit: a pop-up offers the tutorial. Not shown when the page opens from a shared case link.
-  const [welcome, setWelcome] = useState(false);
+  // "Watch a case" on the hero opens the tutorial at its first screen: the three cases in the spotlight.
+  const [picking, setPicking] = useState(false);
   // The case file as it was before the tutorial started, so leaving the tutorial puts everything back.
   const beforeDemo = useRef<{ question: string; clues: string[]; twoScenes: boolean; sceneA: ScenePoint; sceneB: ScenePoint; startYear: number; endYear: number; step: 1 | 2 | 3; result: InvestigationResponse | null; scrollY: number } | null>(null);
   const restored = useRef(false);
@@ -206,7 +206,6 @@ export default function EarthSleuthsApp() {
     if (!isNaN(to)) setEndYear(to);
     if (p.get("lang") === "pt") setLang("pt");
     if (ids.length) setNote("restored");
-    else { try { if (localStorage.getItem("es-tour") !== "seen") setWelcome(true); } catch { setWelcome(true); } }
     restored.current = true;
   }, []);
 
@@ -307,14 +306,12 @@ export default function EarthSleuthsApp() {
     setDemo({ caseId: c.id, stage });
     setTimeout(() => scrollToId("q1"), 40);
   };
+  const snapshot = () => { beforeDemo.current = { question, clues, twoScenes, sceneA, sceneB, startYear, endYear, step, result, scrollY: window.scrollY }; };
+  const startPicking = () => { snapshot(); setPicking(true); scrollToId("casos-grid"); };
   const watchDemo = (c: PresetCase) => {
-    beforeDemo.current = { question, clues, twoScenes, sceneA, sceneB, startYear, endYear, step, result, scrollY: window.scrollY };
+    if (!picking) snapshot();
+    setPicking(false);
     demoStage(c, 0);
-  };
-  const closeWelcome = (startTour: boolean) => {
-    setWelcome(false);
-    try { localStorage.setItem("es-tour", "seen"); } catch { /* storage unavailable */ }
-    if (startTour) watchDemo(PRESET_CASES[0]);
   };
   const demoCase = demo ? PRESET_CASES.find((p) => p.id === demo.caseId) ?? null : null;
   const demoNext = () => {
@@ -328,6 +325,7 @@ export default function EarthSleuthsApp() {
   const exitDemo = () => {
     const b = beforeDemo.current;
     setDemo(null);
+    setPicking(false);
     if (!b) return;
     setQuestion(b.question); setClues(b.clues); setTwoScenes(b.twoScenes); setMapTarget("A");
     setSceneA(b.sceneA); setSceneB(b.sceneB); setStartYear(b.startYear); setEndYear(b.endYear);
@@ -337,11 +335,11 @@ export default function EarthSleuthsApp() {
   const exitRef = useRef(exitDemo);
   exitRef.current = exitDemo;
   useEffect(() => {
-    if (!demo && !welcome) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key !== "Escape") return; if (welcome) closeWelcome(false); else exitRef.current(); };
+    if (!demo && !picking) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") exitRef.current(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [demo, welcome]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [demo, picking]);
 
   const saveToMural = (r: ClueRun) => {
     if (!result || !r.scene_a) return;
@@ -387,6 +385,7 @@ export default function EarthSleuthsApp() {
   const [talking, setTalking] = useState(false);
   const demoLine = demo ? DEMO_SCRIPT[demo.caseId][(["intro", "clue", "place", "years"] as const)[demo.stage]] : null;
   const guideText = demoLine ? L(demoLine)
+    : picking ? t("Escolha um dos três casos e aperte Assistir. Eu resolvo na sua frente e explico cada passo.", "Pick one of the three cases and press Watch. I'll solve it in front of you and explain every step.")
     : loading ? t("Investigando... estou buscando décadas de dados mensais da NASA e testando cada pista.", "Investigating... I'm pulling decades of monthly NASA data and testing each clue.")
     : resultLine && section === "veredito" ? resultLine.text
     : L(SECTION_LINE[guideKey]);
@@ -396,7 +395,7 @@ export default function EarthSleuthsApp() {
     const id = setTimeout(() => setTalking(false), ms);
     return () => clearTimeout(id);
   }, [guideText]);
-  const guideMood: GuideMood = demo ? "talk"
+  const guideMood: GuideMood = demo || picking ? "talk"
     : loading || peering ? "investigate"
     : resultLine?.real && section === "veredito" && talking ? "jump"
     : talking ? "talk" : "idle";
@@ -448,9 +447,9 @@ export default function EarthSleuthsApp() {
               {t(" ou se foi só o sobe e desce normal do clima.", " or just the climate's normal ups and downs.")}
             </p>
             <div className="fade-up delay-3 mt-8 flex flex-col gap-4 sm:flex-row">
-              <a href="#casos" className="btn-pop group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[var(--sun)] px-7 font-serif text-lg font-bold text-[var(--on-color)]">
+              <button type="button" onClick={startPicking} className="btn-pop group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[var(--sun)] px-7 font-serif text-lg font-bold text-[var(--on-color)]">
                 <Play className="group-wiggle h-5 w-5 fill-current" aria-hidden /> {t("Assistir a um caso", "Watch a case")}
-              </a>
+              </button>
               <a href="#q1" className="btn-pop inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[var(--panel)] px-7 font-serif text-lg font-bold text-foreground">
                 {t("Investigar agora", "Investigate now")} <ArrowDown className="h-5 w-5" aria-hidden />
               </a>
@@ -477,7 +476,7 @@ export default function EarthSleuthsApp() {
         <div className="mx-auto max-w-6xl px-4">
           {sectionTitle(t("Comece por aqui", "Start here"), <>{t("Escolha um caso e ", "Pick a case and ")}<span className="text-gradient">{t("aperte Assistir", "press Watch")}</span></>, "var(--coral)")}
           <p data-reveal className="-mt-4 mb-8 text-center text-lg font-semibold text-[var(--muted)]">{t("O Sr. Coelho resolve o caso na sua frente e explica cada passo.", "Mr. Bunny solves the case in front of you and explains every step.")}</p>
-          <div className="grid gap-7 md:grid-cols-3">
+          <div id="casos-grid" className={`grid scroll-mt-24 gap-7 md:grid-cols-3 ${picking ? "relative z-[45]" : ""}`}>
             {PRESET_CASES.map((c, i) => {
               const col = ["var(--sun)", "var(--coral)", "var(--aqua)"][i % 3];
               return (
@@ -498,7 +497,7 @@ export default function EarthSleuthsApp() {
                         <button type="button" onClick={() => watchDemo(c)} className="btn-pop inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-4 font-serif font-bold text-[var(--primary-foreground)]">
                           <Play className="h-4 w-4 fill-current" aria-hidden /> {t("Assistir", "Watch")}
                         </button>
-                        <button type="button" onClick={() => { applyCase(c); scrollToId("q1"); }} className="btn-pop inline-flex h-12 items-center justify-center gap-1.5 rounded-full bg-[var(--panel)] px-4 font-serif font-bold text-foreground">
+                        <button type="button" onClick={() => { setPicking(false); applyCase(c); scrollToId("q1"); }} className="btn-pop inline-flex h-12 items-center justify-center gap-1.5 rounded-full bg-[var(--panel)] px-4 font-serif font-bold text-foreground">
                           {t("Abrir", "Open")} <ArrowRight className="h-4 w-4" aria-hidden />
                         </button>
                       </div>
@@ -891,36 +890,9 @@ export default function EarthSleuthsApp() {
         </div>
       </footer>
 
-      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={SPOT[guideKey]} cheer={cheer} active={talking || loading || !!demo} onSkip={demo ? exitDemo : undefined} onNext={demo ? demoNext : undefined}
+      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={picking ? "left" : SPOT[guideKey]} cheer={cheer} active={talking || loading || !!demo || picking} onSkip={demo || picking ? exitDemo : undefined} onNext={demo ? demoNext : undefined}
         nextLabel={demo ? (demo.stage === 3 ? t("Examinar as evidências!", "Examine the evidence!") : t("Continuar", "Continue")) : undefined} />
-      {demo && <div aria-hidden className="reveal fixed inset-0 z-[44] bg-[#0b0724]/55 backdrop-blur-[3px]" />}
-      {welcome && (
-        <div className="reveal fixed inset-0 z-[70] grid place-items-center bg-[#0b0724]/60 p-4 backdrop-blur-[3px]" onClick={() => closeWelcome(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="welcome-title" onClick={(e) => e.stopPropagation()} className="pop pop-in w-full max-w-md rounded-[32px] p-6 text-center sm:p-8">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <span className="outline-ink -rotate-2 rounded-full bg-[var(--sun)] px-3 py-1 font-serif text-xs font-bold uppercase tracking-wider text-[var(--on-color)]">{t("Sr. Coelho", "Mr. Bunny")}</span>
-              <span className="outline-ink flex overflow-hidden rounded-full text-xs font-extrabold">
-                {(["pt", "en"] as const).map((code) => (
-                  <button key={code} type="button" aria-pressed={lang === code} onClick={() => setLang(code)} className={`px-3 py-1.5 uppercase ${lang === code ? (code === "pt" ? "bg-[#1fbf5f] text-[#062b14]" : "bg-[#ff6b6b] text-[#3a0a0a]") : "bg-[var(--panel)] text-foreground"}`}>{code}</button>
-                ))}
-              </span>
-            </div>
-            <span className="outline-ink wiggle mx-auto grid h-20 w-20 place-items-center rounded-full bg-[var(--grape)] text-[var(--on-color)]"><Search className="h-10 w-10" aria-hidden /></span>
-            <h2 id="welcome-title" className="mt-5 text-3xl font-bold leading-tight text-foreground sm:text-4xl">{t("Quer ver o tutorial?", "Want to see the tutorial?")}</h2>
-            <p className="mt-3 text-[17px] font-semibold leading-relaxed text-[var(--muted)]">
-              {t("O detetive Sr. Coelho resolve um caso na sua frente, passo a passo. Você pode sair quando quiser.", "Detective Mr. Bunny solves a case in front of you, step by step. You can leave whenever you want.")}
-            </p>
-            <div className="mt-7 flex flex-col gap-3">
-              <button type="button" onClick={() => closeWelcome(true)} className="btn-pop inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[var(--sun)] px-6 font-serif text-lg font-bold text-[var(--on-color)]">
-                <Play className="h-5 w-5 fill-current" aria-hidden /> {t("Ver o tutorial", "Show me the tutorial")}
-              </button>
-              <button type="button" onClick={() => closeWelcome(false)} className="btn-pop inline-flex h-12 items-center justify-center rounded-full bg-[var(--panel)] px-6 font-serif font-bold text-foreground">
-                {t("Agora não", "Not now")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {(demo || picking) && <div aria-hidden onClick={picking ? exitDemo : undefined} className="reveal fixed inset-0 z-[44] bg-[#0b0724]/55 backdrop-blur-[3px]" />}
       {evidence && <EvidenceModal run={evidence.run} scene={evidence.scene} lang={lang} onClose={() => setEvidence(null)} />}
     </div>
   );
