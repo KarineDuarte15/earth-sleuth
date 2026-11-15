@@ -18,6 +18,9 @@ from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
+from _lib import chat as chat_llm  # noqa: E402
+from _lib import interpret as llm  # noqa: E402
+from _lib import meteomatics  # noqa: E402
 from _lib.catalog import CLUE_CATALOG  # noqa: E402
 from _lib.nasa_power import fetch_scene, pretty_unit  # noqa: E402
 from _lib.stats_engine import analyze_monthly_series, benjamini_hochberg  # noqa: E402
@@ -78,6 +81,88 @@ def _scene_result(scene: Scene, pid: str, fetched: dict, lang: str) -> dict:
         },
         "unit": unit,
         **analysis,
+    }
+
+
+class NasaSummary(BaseModel):
+    status: str
+    slope_per_decade: float
+    ci95_low: float
+    ci95_high: float
+
+
+class CrossCheckRequest(BaseModel):
+    parameter_id: str
+    scene: Scene
+    start_year: int = Field(..., ge=1981, le=2025)
+    end_year: int = Field(..., ge=1981, le=2025)
+    lang: Literal["pt", "en"] = "pt"
+    nasa: NasaSummary
+
+
+class InterpretRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=400)
+
+
+@app.post("/api/interpret")
+async def interpret_question(req: InterpretRequest):
+    """Ficha da investigação a partir da pergunta livre (LLM). {"fallback": true} = usar as palavras-chave."""
+    return await llm.interpret(req.question)
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "model"]
+    text: str = Field(..., min_length=1, max_length=4000)
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(..., min_length=1, max_length=40)
+    context: dict
+
+
+@app.post("/api/chat")
+async def chat(req: ChatRequest):
+    """Conversa sobre os resultados da investigação (Gemini). {"ok": false} = serviço indisponível."""
+    return await chat_llm.chat([m.model_dump() for m in req.messages], req.context)
+
+
+@app.post("/api/cross-check")
+async def cross_check(req: CrossCheckRequest):
+    """Compara a tendência da NASA com a da Meteomatics (ERA5). Falha da 2ª fonte nunca vira erro HTTP."""
+    pid = req.parameter_id
+    if pid not in CLUE_CATALOG:
+        raise HTTPException(400, f"Pista fora do catálogo: {pid}")
+    if pid not in meteomatics.PARAMS:
+        return {"available": False, "reason": "Esta pista não tem validação cruzada (sem equivalente utilizável na Meteomatics)."
+                if req.lang == "pt" else "No cross-check for this clue (no usable equivalent in Meteomatics)."}
+    _, unit, sign_only = meteomatics.PARAMS[pid]
+    try:
+        records = await meteomatics.fetch_monthly(pid, req.scene.latitude, req.scene.longitude,
+                                                  req.start_year, req.end_year)
+        other = analyze_monthly_series(records, unit=unit, lang=req.lang)
+    except (RuntimeError, ValueError) as exc:
+        return {"available": False, "reason": str(exc)}
+    if other["status"] == "DADOS_INSUFICIENTES":
+        return {"available": False, "reason": other["narrative"]}
+
+    st = other["statistics"]
+    sig = [req.nasa.status == "TENDENCIA_REAL", other["status"] == "TENDENCIA_REAL"]
+    both_sig = all(sig)
+    verdict = meteomatics.agreement(req.nasa.model_dump(), st, sign_only, any(sig))
+    return {
+        "available": True,
+        "source": "Meteomatics / ECMWF ERA5",
+        "credits": meteomatics.CREDITS,
+        "status": other["status"],
+        "unit": unit,
+        "slope_per_decade": st["slope_per_decade"],
+        "ci95_low": st["ci95_low"],
+        "ci95_high": st["ci95_high"],
+        "p_value": st["p_value"],
+        "sign_only": sign_only,
+        "verdict": verdict,
+        "both_significant": both_sig,
+        "summary": meteomatics.verdict_text(verdict, both_sig, req.lang),
     }
 
 

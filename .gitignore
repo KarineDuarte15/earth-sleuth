@@ -1,3 +1,12 @@
+node_modules/
+.next/
+__pycache__/
+.pytest_cache/
+.vercel/
+*.pyc
+next-env.d.ts
+.env*
+tsconfig.tsbuildinfo
 # Logs
 logs
 *.log

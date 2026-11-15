@@ -12,13 +12,32 @@ export interface InterpretedIntent {
 
 const has = (q: string, re: RegExp) => re.test(q);
 
+const FIRST_YEAR = 1981;
+const LAST_YEAR = 2025;
+const clampYear = (y: number) => Math.min(Math.max(y, FIRST_YEAR), LAST_YEAR);
+
+/** "desde 1990", "últimos 20 anos", "entre 1990 e 2010" -> anos (dentro de 1981–2025); sem menção, o período todo. */
+export function parsePeriod(raw: string): { start: number; end: number } {
+  const q = raw.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const between = q.match(/\b(?:entre|between|de|from)\s+((?:19|20)\d\d)\s+(?:e|a|ate|and|to)\s+((?:19|20)\d\d)\b/);
+  if (between) return { start: clampYear(+between[1]), end: clampYear(+between[2]) };
+  const since = q.match(/\b(?:desde|since|from)\s+((?:19|20)\d\d)\b/);
+  if (since) return { start: clampYear(+since[1]), end: LAST_YEAR };
+  const last = q.match(/\b(?:ultim[oa]s|last)\s+(\d{1,2})\s+(?:anos|years)\b/);
+  if (last) return { start: clampYear(LAST_YEAR - +last[1] + 1), end: LAST_YEAR };
+  const words: Record<string, number> = { duas: 2, dois: 2, tres: 3, quatro: 4, cinco: 5, two: 2, three: 3, four: 4, five: 5 };
+  const dec = q.match(/\b(?:ultim[oa]s|last)\s+(\d|duas|dois|tres|quatro|cinco|two|three|four|five)\s+(?:decadas|decades)\b/);
+  if (dec) return { start: clampYear(LAST_YEAR - 10 * (words[dec[1]] ?? +dec[1]) + 1), end: LAST_YEAR };
+  return { start: FIRST_YEAR, end: LAST_YEAR };
+}
+
 export function interpretQuestion(raw: string): InterpretedIntent {
   const q = raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const compare = has(q, /\b(compar\w*|opost\w*|duas regioes|versus|vs\.?|diferente\w*|opposite|compare)\b/);
   const dry = has(q, /\b(sec[oa]s?|secando|seca|umidade|aridez|drier|dry|drought|soil|moisture)\b/);
   const night = has(q, /\b(noite\w*|noturn\w*|minima\w*|night\w*|minimum)\b/);
   const day = has(q, /\b(maxima\w*|diurn\w*|daytime|maximum)\b/);
-  const heat = has(q, /\b(quente\w*|calor|temperatura\w*|aquec\w*|warm\w*|hot|heat|temperature)\b/);
+  const heat = has(q, /\b(quente\w*|calor|temperatura\w*|aquec\w*|warm\w*|hot\w*|heat|temperature)\b/);
   const sat = has(q, /\b(satelite|imerg|gpm)\b/);
   const rain = has(q, /\b(chuv\w*|chove\w*|precipit\w*|rain\w*|precip\w*)\b/);
 
