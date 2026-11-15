@@ -280,7 +280,11 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
   const inHero = spot === "hero" && !walking;
   const onRight = box.x + box.w / 2 > vw / 2;
   const show3d = webgl && !reduce;
-  const bubbleVisible = !walking && (!small || active || peek || !!onSkip || inHero);
+  // Free space beside the 1152px content column. The bubble sits above him, inside that margin;
+  // when the margin is too narrow to hold it, the bubble folds away once he has finished talking.
+  const margin = Math.max(0, (vw - 1152) / 2);
+  const tight = small || margin < 250;
+  const bubbleVisible = !walking && (!tight || active || peek || !!onSkip || inHero);
   const effMood: GuideMood = poke ? "jump" : walking ? (climbing ? "climb" : "walk") : fidget ? "investigate" : mood;
 
   const base = baseSize(vw);
@@ -289,8 +293,9 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
 
   const bubbleStyle: React.CSSProperties = inHero
     ? small ? { left: "50%", bottom: "100%", translate: "-50% 0", width: "min(78vw, 280px)" } : { left: "66%", top: "-7%", width: 215 }
-    : onRight ? { right: "calc(100% - 14px)", bottom: "34%", width: small ? Math.min(230, vw - box.w - 8) : 260 }
-      : { left: "calc(100% - 14px)", bottom: "34%", width: small ? Math.min(230, vw - box.w - 8) : 260 };
+    : small
+      ? onRight ? { right: "calc(100% - 14px)", bottom: "34%", width: Math.min(230, vw - box.w - 8) } : { left: "calc(100% - 14px)", bottom: "34%", width: Math.min(230, vw - box.w - 8) }
+      : { [onRight ? "right" : "left"]: 0, bottom: "97%", width: Math.max(200, Math.min(260, margin - 28)) };
 
   return (
     <>
