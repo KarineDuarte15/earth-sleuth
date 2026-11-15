@@ -170,6 +170,8 @@ export default function EarthSleuthsApp() {
   const [twoScenes, setTwoScenes] = useState(false);
   const [mapTarget, setMapTarget] = useState<"A" | "B">("A");
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [cheer, setCheer] = useState(0);
+  const [peering, setPeering] = useState(false);
   const [sceneA, setSceneA] = useState<ScenePoint>(PRESET_CASES[0].sceneA);
   const [sceneB, setSceneB] = useState<ScenePoint>(PELOTAS);
 
@@ -244,6 +246,7 @@ export default function EarthSleuthsApp() {
   };
 
   const toggleClue = (id: string) => {
+    if (!clues.includes(id)) setCheer((c) => c + 1);
     setClues((prev) => (prev.includes(id) ? (prev.length > 1 ? prev.filter((x) => x !== id) : prev) : [...prev, id]));
   };
 
@@ -344,6 +347,7 @@ export default function EarthSleuthsApp() {
     }, ...m.filter((c) => c.id !== id)]);
     navigator.clipboard?.writeText(url).catch(() => {});
     setCopied(id);
+    setCheer((c) => c + 1);
     setTimeout(() => setCopied(null), 2500);
   };
 
@@ -385,7 +389,7 @@ export default function EarthSleuthsApp() {
     return () => clearTimeout(id);
   }, [guideText]);
   const guideMood: GuideMood = demo ? demo.mood
-    : loading ? "investigate"
+    : loading || peering ? "investigate"
     : resultLine?.real && section === "veredito" && talking ? "jump"
     : talking ? "talk" : "idle";
 
@@ -650,7 +654,7 @@ export default function EarthSleuthsApp() {
             <PlaceSearch target={twoScenes ? mapTarget : "A"} focus={twoScenes && mapTarget === "B" ? sceneB : sceneA}
               onSelect={(target, point) => (target === "A" ? setSceneA : setSceneB)(point)} />
           )}
-          <div className="outline-ink overflow-hidden rounded-3xl">
+          <div className="outline-ink overflow-hidden rounded-3xl" onPointerEnter={() => setPeering(true)} onPointerLeave={() => setPeering(false)}>
             <MapSelector lang={lang} sceneA={sceneA} sceneB={twoScenes ? sceneB : null} activeTarget={twoScenes ? mapTarget : "A"}
               latStep={primary.lat_step} lonStep={primary.lon_step}
               onSelectPoint={(target, lat, lon) =>
@@ -710,7 +714,7 @@ export default function EarthSleuthsApp() {
               </button>
             </div>
           <div className="min-w-0 flex-1">
-            <button type="button" disabled={loading} onClick={() => void run()}
+            <button type="button" disabled={loading} onClick={() => void run()} onPointerEnter={() => setPeering(true)} onPointerLeave={() => setPeering(false)}
               className="btn-pop group relative flex h-16 w-full items-center justify-center gap-3 overflow-hidden rounded-3xl bg-[var(--sun)] px-6 font-serif text-xl font-bold text-[var(--on-color)] sm:text-2xl disabled:opacity-80">
               {loading && <span className="scan-bar absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/60 to-transparent" aria-hidden />}
               <ScanSearch className={`h-8 w-8 ${loading ? "wiggle" : "group-wiggle"}`} aria-hidden />
@@ -888,7 +892,7 @@ export default function EarthSleuthsApp() {
         </div>
       </footer>
 
-      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={SPOT[guideKey]} active={talking || loading || !!demo} onSkip={demo ? skipDemo : undefined} />
+      <SleuthGuide lang={lang} text={guideText} mood={guideMood} spot={SPOT[guideKey]} cheer={cheer} active={talking || loading || !!demo} onSkip={demo ? skipDemo : undefined} />
       {evidence && <EvidenceModal run={evidence.run} scene={evidence.scene} lang={lang} onClose={() => setEvidence(null)} />}
     </div>
   );

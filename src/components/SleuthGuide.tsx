@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { MessageCircle, SkipForward, X } from "lucide-react";
 import type { Lang } from "@/types/sleuth";
 
-export type GuideMood = "idle" | "talk" | "walk" | "investigate" | "jump";
+export type GuideMood = "idle" | "talk" | "walk" | "investigate" | "jump" | "climb";
 /** Where Sleuth stands: on the hero planet, or in a bottom corner of the screen. */
 export type GuideSpot = "hero" | "left" | "right";
 
 const MODEL_URL = "/brand/sleuth-bunny.glb";
 // Animation names inside the GLB (Bunny Detective by bird, CC BY 4.0 / CC0).
-const CLIP: Record<GuideMood, string> = { idle: "Idle", talk: "Talk", walk: "Walk", investigate: "Investigate", jump: "Jump" };
+const CLIP: Record<GuideMood, string> = { idle: "Idle", talk: "Talk", walk: "Walk", investigate: "Investigate", jump: "Jump", climb: "Climb" };
 const WALK_MS = 1700;
 const HERO_ANCHOR = "sleuth-stage";
 
@@ -23,6 +23,8 @@ interface Props {
   onSkip?: () => void;
   /** True while Sleuth has something new to say; on phones the bubble folds away once he is done. */
   active?: boolean;
+  /** Bump this number to make him jump for joy (a clue picked, a case pinned...). */
+  cheer?: number;
 }
 
 function useReducedMotion() {
@@ -149,7 +151,7 @@ function hasWebGL() {
   } catch { return false; }
 }
 
-export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = true }: Props) {
+export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = true, cheer = 0 }: Props) {
   const t = (pt: string, en: string) => (lang === "pt" ? pt : en);
   const reduce = useReducedMotion();
   const [ready, setReady] = useState(false);
@@ -162,6 +164,8 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
   const [box, setBox] = useState<Box | null>(null);
   const [walking, setWalking] = useState(false);
   const [facing, setFacing] = useState(0);
+  const [climbing, setClimbing] = useState(false);
+  const [fidget, setFidget] = useState(false);
   const boxRef = useRef<Box | null>(null);
   const walkingRef = useRef(false);
   boxRef.current = box;
@@ -185,7 +189,10 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
     const dx = next.x + next.w / 2 - (cur.x + cur.w / 2);
     const dy = next.y - cur.y;
     if (Math.abs(dx) < 24 && Math.abs(dy) < 24 && Math.abs(next.w - cur.w) < 8) { setBox(next); return; }
-    setFacing(dx > 24 ? 1 : dx < -24 ? -1 : 0);
+    // Going up to the planet (or anywhere much higher) he climbs; otherwise he walks.
+    const up = spot === "hero" || dy < -140;
+    setClimbing(up);
+    setFacing(up ? 0 : dx > 24 ? 1 : dx < -24 ? -1 : 0);
     setWalking(true);
     setBox(next);
     const id = setTimeout(() => { setWalking(false); setFacing(0); setBox(targetBox(spot)); }, WALK_MS);
@@ -215,6 +222,23 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
     try { localStorage.setItem("es-guide", v ? "open" : "closed"); } catch { /* storage unavailable */ }
   };
 
+  // A cheer from the page: jump once.
+  const firstCheer = useRef(true);
+  useEffect(() => {
+    if (firstCheer.current) { firstCheer.current = false; return; }
+    setPoke(true);
+    const id = setTimeout(() => setPoke(false), 1300);
+    return () => clearTimeout(id);
+  }, [cheer]);
+
+  // When he has been standing still for a while, he takes a look around with the magnifying glass.
+  useEffect(() => {
+    if (mood !== "idle" || walking) { setFidget(false); return; }
+    let off = 0;
+    const on = setInterval(() => { setFidget(true); off = window.setTimeout(() => setFidget(false), 2800); }, 9000);
+    return () => { clearInterval(on); clearTimeout(off); };
+  }, [mood, walking]);
+
   const onPoke = () => {
     setPeek((v) => !v);
     setPoke(true);
@@ -238,7 +262,7 @@ export default function SleuthGuide({ lang, text, mood, spot, onSkip, active = t
   const onRight = box.x + box.w / 2 > vw / 2;
   const show3d = webgl && !reduce;
   const bubbleVisible = !walking && (!small || active || peek || !!onSkip || inHero);
-  const effMood: GuideMood = poke ? "jump" : walking ? "walk" : mood;
+  const effMood: GuideMood = poke ? "jump" : walking ? (climbing ? "climb" : "walk") : fidget ? "investigate" : mood;
 
   const base = baseSize(vw);
   const scale = box.h / base.h;
