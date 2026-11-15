@@ -1,4 +1,4 @@
-import { ClueSpec, ScenePoint } from "@/types/sleuth";
+import type { ClueSpec, ScenePoint } from "@/types/sleuth";
 
 // Espelho do catálogo do back-end (api/_lib/catalog.py). A unidade final vem da API NASA.
 const MERRA = {

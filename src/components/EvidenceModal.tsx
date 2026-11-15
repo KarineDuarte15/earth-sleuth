@@ -1,8 +1,8 @@
-"use client";
+import { Button } from "@/components/ui/button";
 
 import { useEffect } from "react";
 import { X, Download, ShieldCheck } from "lucide-react";
-import { ClueRun, Lang, SceneAnalysis } from "@/types/sleuth";
+import type { ClueRun, Lang, SceneAnalysis } from "@/types/sleuth";
 
 interface Props {
   run: ClueRun;
@@ -22,7 +22,7 @@ function download(name: string, content: string, type: string) {
 
 export default function EvidenceModal({ run, scene, lang, onClose }: Props) {
   const t = (pt: string, en: string) => (lang === "pt" ? pt : en);
-  const slug = `earth_sleuths_${run.variable.parameter_id}_${scene.geography.region_name.split("/")[0].trim().replace(/\W+/g, "_")}`;
+  const slug = `earth-sleuth_${run.variable.parameter_id}_${scene.geography.region_name.split("/")[0].trim().replace(/\W+/g, "_")}`;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -40,30 +40,30 @@ export default function EvidenceModal({ run, scene, lang, onClose }: Props) {
   const p = scene.provenance;
   const st = scene.statistics;
   const Row = ({ k, v }: { k: string; v: React.ReactNode }) => (
-    <div><span className="font-semibold text-slate-900">{k}:</span> {v ?? "—"}</div>
+    <div><span className="font-semibold text-foreground">{k}:</span> {v ?? "—"}</div>
   );
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-foreground/60 p-4" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby="ev-title"
-        className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
+        className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-background p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
+        <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
           <div>
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-sky-700">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-primary">
               <ShieldCheck className="h-4 w-4" aria-hidden /> {t("Fonte e método", "Source and method")}
             </p>
-            <h3 id="ev-title" className="mt-1 text-lg font-bold text-slate-900">
+            <h3 id="ev-title" className="mt-1 text-lg font-bold text-foreground">
               {run.variable.parameter_id} em {scene.geography.region_name}
             </h3>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" aria-label={t("Fechar", "Close")}>
+          <Button variant="plain" size="content" type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary" aria-label={t("Fechar", "Close")}>
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
-        <div className="mt-4 space-y-3 text-xs text-slate-700">
-          <div className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:grid-cols-2">
+        <div className="mt-4 space-y-3 text-xs text-muted-foreground">
+          <div className="grid grid-cols-1 gap-2 rounded-xl border border-border bg-secondary p-3.5 sm:grid-cols-2">
             <Row k={t("Fonte", "Source")} v={p.source_mission} />
             <Row k={t("Tipo de dado", "Data type")} v={p.data_type} />
             <Row k={t("Nome oficial", "Official name")} v={p.longname} />
@@ -78,7 +78,7 @@ export default function EvidenceModal({ run, scene, lang, onClose }: Props) {
             <Row k={t("Versão da API / app", "API / app version")} v={`${p.dataset_version ?? "—"} / ${p.app_version}`} />
           </div>
 
-          <div className="rounded-xl border border-sky-200 bg-sky-50 p-3.5 text-sky-950">
+          <div className="rounded-xl border border-primary bg-sky-50 p-3.5 text-primary">
             <p className="mb-1 font-semibold">{t("Limites desta análise", "Limits of this analysis")}</p>
             <ul className="list-disc space-y-1 pl-4">
               <li>{t("Mann-Kendall detecta tendência monotônica; não prova a causa (por exemplo, não mostra que o El Niño causou a mudança).", "Mann-Kendall detects a monotonic trend; it does not prove the cause.")}</li>
@@ -90,19 +90,19 @@ export default function EvidenceModal({ run, scene, lang, onClose }: Props) {
           </div>
 
           <div>
-            <p className="mb-1 font-semibold text-slate-900">{t("Consulta de origem", "Source request")}</p>
-            <code className="block break-all rounded-lg bg-[#12284a] p-2.5 text-[11px] text-sky-100">{p.request_url}</code>
+            <p className="mb-1 font-semibold text-foreground">{t("Consulta de origem", "Source request")}</p>
+            <code className="block break-all rounded-lg bg-secondary p-2.5 text-[11px] text-primary">{p.request_url}</code>
           </div>
-          <p className="text-[11px] text-slate-500">{p.credits}</p>
+          <p className="text-[11px] text-muted-foreground">{p.credits}</p>
         </div>
 
-        <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
-          <button type="button" onClick={csv} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3.5 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-50">
+        <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+          <Button variant="plain" size="content" type="button" onClick={csv} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-secondary">
             <Download className="h-4 w-4" aria-hidden /> {t("Baixar CSV", "Download CSV")}
-          </button>
-          <button type="button" onClick={json} className="inline-flex items-center gap-1.5 rounded-lg bg-[#1a9bc7] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#1789b0]">
+          </Button>
+          <Button variant="plain" size="content" type="button" onClick={json} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90">
             <Download className="h-4 w-4" aria-hidden /> {t("Baixar JSON do laudo", "Download report JSON")}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
