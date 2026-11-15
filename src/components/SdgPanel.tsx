@@ -49,13 +49,13 @@ export default function SdgPanel({ activeTargets, lang }: { activeTargets: strin
           <p>{t("Se o ano passado foi o mais seco da década, isso já prova uma tendência?", "If last year was the driest of the decade, does that prove a trend?")}</p>
           <div className="flex flex-wrap gap-2">
             <Button variant="plain" size="content" type="button" onClick={() => setAnswer("no")} className={`rounded-lg border px-3 py-1.5 ${answer === "no" ? "border-success bg-success text-primary-foreground" : "border-indigo-200 bg-background"}`}>
-              {t("Não — um ano extremo pode ser oscilação", "No — one extreme year can be variability")}
+              {t("Não, um ano extremo pode ser oscilação", "No, one extreme year can be variability")}
             </Button>
             <Button variant="plain" size="content" type="button" onClick={() => setAnswer("yes")} className={`rounded-lg border px-3 py-1.5 ${answer === "yes" ? "border-warning bg-warning text-primary-foreground" : "border-indigo-200 bg-background"}`}>
-              {t("Sim — um ano atípico basta", "Yes — one unusual year is enough")}
+              {t("Sim, um ano atípico basta", "Yes, one unusual year is enough")}
             </Button>
           </div>
-          {answer === "no" && <p className="font-semibold text-success">{t("Isso. Para falar em tendência é preciso uma série longa e um teste estatístico — é o que o carimbo faz.", "Right. A trend needs a long series and a statistical test — that is what the stamp does.")}</p>}
+          {answer === "no" && <p className="font-semibold text-success">{t("Isso. Para falar em tendência é preciso uma série longa e um teste estatístico. É o que o carimbo faz.", "Right. A trend needs a long series and a statistical test. That is what the stamp does.")}</p>}
           {answer === "yes" && <p className="font-semibold text-warning">{t("Cuidado: um ano extremo pode ser variação natural. Rode uma investigação e veja o carimbo.", "Careful: one extreme year can be natural variability. Run an investigation and check the stamp.")}</p>}
         </div>
       )}

@@ -235,7 +235,7 @@ export default function EarthSleuthsApp() {
           <img src={LOGO_SRC} width={176} height={176} alt={t("Logo Earth Sleuth: planeta, lupa e satélite", "Earth Sleuth logo: globe, magnifying glass and satellite")} className="mb-5 h-36 w-36 object-contain sm:h-44 sm:w-44" />
           <p className="text-sm font-semibold text-primary">{t("O planeta deixa pistas. A ciência revela tendências.", "Earth leaves clues. Science reveals trends.")}</p>
           <h1 className="mt-3 max-w-3xl text-4xl font-extrabold leading-[1.1] text-foreground sm:text-6xl">
-            {t("Está mudando mesmo — ou foi só um ano estranho?", "Is it really changing — or was it just a strange year?")}
+            {t("Está mudando mesmo, ou foi só um ano estranho?", "Is it really changing, or was it just a strange year?")}
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-[var(--muted)]">
             {t("Escolha uma pista, um lugar e um período. O Earth Sleuth busca décadas de dados da NASA e devolve um veredito com a estatística à vista.",
@@ -283,7 +283,7 @@ export default function EarthSleuthsApp() {
           </div>
           <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--night)] p-4 text-sm">
             <span className="font-semibold text-foreground">{t(focused.label_pt, focused.label_en)}</span>
-            <span className="text-[var(--muted)]"> — {t(focused.simple_def_pt, focused.simple_def_en)} </span>
+            <span className="text-[var(--muted)]">: {t(focused.simple_def_pt, focused.simple_def_en)} </span>
             <span className="text-xs text-[var(--muted)]">({focused.parameter_id} · {focused.source_mission} · {t(focused.data_type_pt, focused.data_type_en ?? focused.data_type_pt)} · {t("desde", "since")} {focused.min_year})</span>
           </div>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
@@ -398,12 +398,12 @@ export default function EarthSleuthsApp() {
 
         <div ref={resultsRef} className="scroll-mt-20">
           <Step n="04" title={t("Evidências e veredito", "Evidence and verdict")}
-            hint={t("A estatística decide o carimbo — não uma IA.", "Statistics decide the stamp — never AI.")}>
+            hint={t("A estatística decide o carimbo, nunca uma IA.", "Statistics decide the stamp, never AI.")}>
             {!result ? (
               <div className="rounded-2xl border border-dashed border-[var(--line)] p-10 text-center text-[var(--muted)]">
                 <ScanSearch className="mx-auto mb-3 h-10 w-10 text-[var(--line)]" aria-hidden />
-                {t("Nenhum caso aberto ainda. Escolha pista, lugar e período e clique em Examinar — ou abra um dossiê lá em cima.",
-                  "No case open yet. Pick a clue, place and period and press Examine — or open a case file above.")}
+                {t("Nenhum caso aberto ainda. Escolha pista, lugar e período e clique em Examinar, ou abra um dossiê lá em cima.",
+                  "No case open yet. Pick a clue, place and period and press Examine, or open a case file above.")}
               </div>
             ) : (
               <div className="space-y-8">
@@ -486,7 +486,7 @@ export default function EarthSleuthsApp() {
                   <h3 className="mt-1 text-base font-bold text-foreground">{c.question}</h3>
                   <p className="text-sm text-[var(--muted)]">{c.regions}</p>
                   <p className="mt-2 border-t border-[var(--line)] pt-2 text-sm text-foreground">
-                    {c.status.replace(/_/g, " ")} · {c.slope !== null ? `${c.slope > 0 ? "+" : ""}${c.slope} ${c.unit}/${t("déc", "dec")}` : "—"}
+                    {c.status.replace(/_/g, " ")} · {c.slope !== null ? `${c.slope > 0 ? "+" : ""}${c.slope} ${c.unit}/${t("déc", "dec")}` : "n/a"}
                   </p>
                 </a>
               ))}

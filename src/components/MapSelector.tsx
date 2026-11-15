@@ -141,7 +141,7 @@ export default function MapSelector(props: Props) {
 
   return (
     <div className="relative h-[380px] w-full overflow-hidden rounded-lg border border-border bg-secondary">
-      <div ref={container} className="h-full w-full" aria-label="Google Maps — locais da investigação" />
+      <div ref={container} className="h-full w-full" aria-label="Google Maps: investigation locations" />
       {!map && <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-muted-foreground" role="status">{error ?? "Carregando Google Maps…"}</div>}
       {map && <p className="pointer-events-none absolute left-3 right-16 top-14 rounded-md bg-background/95 px-3 py-1.5 text-xs text-foreground">
         Cena <strong className={props.activeTarget === "A" ? "text-primary" : "text-scene-b"}>{props.activeTarget}</strong>

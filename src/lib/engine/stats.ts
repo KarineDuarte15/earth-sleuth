@@ -256,11 +256,11 @@ export function analyzeMonthlySeries(recordsIn: MonthlyRecord[], unit: string, l
   if (lang === "pt") {
     narrative = status === "TENDENCIA_REAL"
       ? `Os dados sustentam uma tendência monotônica de ${rate} por década (IC 95%: ${ci}; ${pTxt}) no período analisado. Se não houvesse tendência, um resultado tão extremo quanto este seria improvável (${pTxt}). Isso descreve a série; não identifica a causa.`
-      : `A taxa estimada é de ${rate} por década (IC 95%: ${ci}; ${pTxt}). Não há evidência estatística suficiente para afirmar uma tendência no período — o que não prova que a mudança não exista.`;
+      : `A taxa estimada é de ${rate} por década (IC 95%: ${ci}; ${pTxt}). Não há evidência estatística suficiente para afirmar uma tendência no período, o que não prova que a mudança não exista.`;
   } else {
     narrative = status === "TENDENCIA_REAL"
       ? `The data support a monotonic trend of ${rate} per decade (95% CI: ${ci}; ${pTxt}) over the period. With no trend, a result this extreme would be unlikely (${pTxt}). This describes the series, not its cause.`
-      : `The estimated rate is ${rate} per decade (95% CI: ${ci}; ${pTxt}). There is not enough statistical evidence for a trend in this period — which does not prove that no change exists.`;
+      : `The estimated rate is ${rate} per decade (95% CI: ${ci}; ${pTxt}). There is not enough statistical evidence for a trend in this period, which does not prove that no change exists.`;
   }
 
   const statistics = {

@@ -50,8 +50,8 @@ export function interpretQuestion(raw: string): InterpretedIntent {
   } else {
     return {
       clues: ["T2M"],
-      rationale_pt: "Não reconheci o tema com segurança. Deixei a temperatura média marcada — escolha as pistas na ficha.",
-      rationale_en: "Topic not recognised with confidence. Mean temperature is preselected — pick clues in the case file.",
+      rationale_pt: "Não reconheci o tema com segurança. Deixei a temperatura média marcada. Escolha as pistas na ficha.",
+      rationale_en: "Topic not recognised with confidence. Mean temperature is preselected. Pick clues in the case file.",
       twoScenes: compare,
       confident: false,
     };

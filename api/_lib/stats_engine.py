@@ -335,7 +335,7 @@ def analyze_monthly_series(
         else:
             narrative = (
                 f"A taxa estimada é de {rate} por década (IC 95%: {ci}; {p_txt}). Não há "
-                f"evidência estatística suficiente para afirmar uma tendência no período — "
+                f"evidência estatística suficiente para afirmar uma tendência no período, "
                 f"o que não prova que a mudança não exista."
             )
     else:
@@ -348,7 +348,7 @@ def analyze_monthly_series(
         else:
             narrative = (
                 f"The estimated rate is {rate} per decade (95% CI: {ci}; {p_txt}). There is "
-                f"not enough statistical evidence for a trend in this period — which does not "
+                f"not enough statistical evidence for a trend in this period, which does not "
                 f"prove that no change exists."
             )
 

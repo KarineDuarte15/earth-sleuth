@@ -40,7 +40,7 @@ export default function EvidenceModal({ run, scene, lang, onClose }: Props) {
   const p = scene.provenance;
   const st = scene.statistics;
   const Row = ({ k, v }: { k: string; v: React.ReactNode }) => (
-    <div><span className="font-semibold text-foreground">{k}:</span> {v ?? "—"}</div>
+    <div><span className="font-semibold text-foreground">{k}:</span> {v ?? "n/a"}</div>
   );
 
   return (
@@ -75,7 +75,7 @@ export default function EvidenceModal({ run, scene, lang, onClose }: Props) {
             <Row k={t("Teste", "Test")} v={st.methodology} />
             <Row k={t("Dependência serial", "Serial dependence")} v={st.autocorrelation_method} />
             <Row k="Kendall τ / Z" v={st.tau !== null ? `${st.tau} / ${st.z}` : null} />
-            <Row k={t("Versão da API / app", "API / app version")} v={`${p.dataset_version ?? "—"} / ${p.app_version}`} />
+            <Row k={t("Versão da API / app", "API / app version")} v={`${p.dataset_version ?? "n/a"} / ${p.app_version}`} />
           </div>
 
           <div className="rounded-xl border border-primary bg-sky-50 p-3.5 text-primary">
@@ -83,7 +83,7 @@ export default function EvidenceModal({ run, scene, lang, onClose }: Props) {
             <ul className="list-disc space-y-1 pl-4">
               <li>{t("Mann-Kendall detecta tendência monotônica; não prova a causa (por exemplo, não mostra que o El Niño causou a mudança).", "Mann-Kendall detects a monotonic trend; it does not prove the cause.")}</li>
               <li>{t("Reanálise e estimativa de satélite não são medição de estação ou pluviômetro de rua.", "Reanalysis and satellite estimates are not station or rain-gauge measurements.")}</li>
-              <li>{t("O p-valor é a probabilidade de um resultado tão extremo se não houvesse tendência — não é a “chance de ser ruído”.", "The p-value is the probability of a result this extreme if there were no trend — not the “chance of noise”.")}</li>
+              <li>{t("O p-valor é a probabilidade de um resultado tão extremo se não houvesse tendência. Não é a “chance de ser ruído”.", "The p-value is the probability of a result this extreme if there were no trend. It is not the “chance of noise”.")}</li>
               <li>{t("Sem significância não quer dizer sem mudança: séries curtas têm pouco poder estatístico.", "No significance does not mean no change: short series have low statistical power.")}</li>
               <li>{t("Com várias pistas ou regiões testadas juntas, olhe também o q-valor (FDR de Benjamini-Hochberg).", "With several clues or regions tested together, also check the q-value (Benjamini-Hochberg FDR).")}</li>
             </ul>

@@ -13,7 +13,7 @@ const STAMP = {
     hint_pt: "Série curta ou com lacunas demais para um veredito.", hint_en: "Series too short or too gappy for a verdict." },
 } as const;
 
-const fmtP = (p: number | null | undefined) => (p === null || p === undefined ? "—" : p < 0.0001 ? "< 0.0001" : `= ${p.toFixed(4)}`);
+const fmtP = (p: number | null | undefined) => (p === null || p === undefined ? "n/a" : p < 0.0001 ? "< 0.0001" : `= ${p.toFixed(4)}`);
 
 interface Props {
   run: ClueRun;
@@ -66,13 +66,13 @@ export default function VerdictStamp({ run, scene, label, accent, lang, onOpenEv
         </div>
         <div className={tile}>
           <dt className="text-[11px] text-[var(--muted)]">{t("Para onde?", "Which way?")}</dt>
-          <dd className="mt-1 font-semibold text-foreground">{st.slope_per_decade !== null ? dirWord : "—"}</dd>
+          <dd className="mt-1 font-semibold text-foreground">{st.slope_per_decade !== null ? dirWord : "n/a"}</dd>
           <dd className="text-xs text-[var(--muted)]">{quality.span_years} {t("anos analisados", "years analysed")}</dd>
         </div>
         <div className={tile}>
           <dt className="text-[11px] text-[var(--muted)]">{t("Quanto por década?", "How much per decade?")}</dt>
           <dd className="mt-1 text-2xl font-bold leading-none" style={{ color: accent }}>
-            {st.slope_per_decade !== null ? <CountUp value={st.slope_per_decade} /> : "—"}
+            {st.slope_per_decade !== null ? <CountUp value={st.slope_per_decade} /> : "n/a"}
           </dd>
           <dd className="mt-1 text-xs text-[var(--muted)]">
             {st.ci95_low !== null ? `${unit} · ${t("IC 95%", "95% CI")} ${st.ci95_low} ${t("a", "to")} ${st.ci95_high}` : t("não calculado", "not computed")}
@@ -93,8 +93,8 @@ export default function VerdictStamp({ run, scene, label, accent, lang, onOpenEv
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--muted)]">
         <span>
           {st.variance_inflation !== null
-            ? t(`Autocorrelação lag-1 ${st.autocorrelation_lag1 ?? "—"} · variância do teste × ${st.variance_inflation}`,
-              `Lag-1 autocorrelation ${st.autocorrelation_lag1 ?? "—"} · test variance × ${st.variance_inflation}`)
+            ? t(`Autocorrelação lag-1 ${st.autocorrelation_lag1 ?? "n/a"} · variância do teste × ${st.variance_inflation}`,
+              `Lag-1 autocorrelation ${st.autocorrelation_lag1 ?? "n/a"} · test variance × ${st.variance_inflation}`)
             : t("Teste não executado (regra de qualidade).", "Test not run (quality rule).")}
         </span>
         <Button variant="plain" size="content" type="button" onClick={() => onOpenEvidence(scene)}

@@ -30,7 +30,7 @@ export const CLUE_CATALOG: Record<string, ServerClueSpec> = {
     "parameter_id": "T2M_MIN",
     "label_pt": "Temperatura mínima (calor noturno)",
     "label_en": "Minimum air temperature (night heat)",
-    "simple_def_pt": "Média mensal das mínimas diárias a 2 m — indica se as noites esquentaram.",
+    "simple_def_pt": "Média mensal das mínimas diárias a 2 m. Indica se as noites esquentaram.",
     "simple_def_en": "Monthly mean of daily minimum temperature at 2 m.",
     "unit_fallback": "°C",
     "sdg_targets": [
